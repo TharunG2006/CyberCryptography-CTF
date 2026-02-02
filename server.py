@@ -160,5 +160,44 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/debug-db')
+def debug_db():
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASS'),
+            port=os.getenv('DB_PORT'),
+            sslmode='require'
+        )
+        cur = conn.cursor()
+        cur.execute('SELECT version()')
+        db_version = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify({
+            "status": "success", 
+            "version": db_version[0],
+            "config": {
+                "host": os.getenv('DB_HOST'),
+                "user": os.getenv('DB_USER'),
+                "port": os.getenv('DB_PORT'),
+                "db": os.getenv('DB_NAME')
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+            "config": {
+                "host": os.getenv('DB_HOST'),
+                "user": os.getenv('DB_USER'),
+                "port": os.getenv('DB_PORT'),
+                "db": os.getenv('DB_NAME')
+            }
+        }), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
