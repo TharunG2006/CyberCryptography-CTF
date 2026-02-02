@@ -143,7 +143,7 @@ const App = () => {
 
     const fetchLeaderboard = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/leaderboard');
+            const res = await fetch('/api/leaderboard');
             const data = await res.json();
             if (res.ok) {
                 // process ranks logic
