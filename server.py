@@ -4,6 +4,7 @@ import psycopg2
 import bcrypt
 import os
 import re
+import traceback
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,8 +24,9 @@ def get_db_connection():
             sslmode='require'
         )
         return conn
-    except Exception as e:
-        print(f"CRITICAL ERROR: Failed to connect to database. details: {e}")
+    except Exception:
+        print("CRITICAL ERROR: Failed to connect to database.")
+        print(traceback.format_exc())
         return None
 
 def init_db():
