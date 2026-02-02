@@ -4,7 +4,6 @@ import psycopg2
 import bcrypt
 import os
 import re
-import traceback
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +12,6 @@ app = Flask(__name__, static_url_path='', static_folder='.')
 CORS(app)  # Enable CORS for all routes
 
 def get_db_connection():
-    print(f"DEBUG: Connecting to DB Host: {os.getenv('DB_HOST')}, User: {os.getenv('DB_USER')}, DB: {os.getenv('DB_NAME')}, Port: {os.getenv('DB_PORT')}")
     try:
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST'),
@@ -24,9 +22,8 @@ def get_db_connection():
             sslmode='require'
         )
         return conn
-    except Exception:
-        print("CRITICAL ERROR: Failed to connect to database.")
-        print(traceback.format_exc())
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
         return None
 
 def init_db():
@@ -159,45 +156,6 @@ def login():
             return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/debug-db')
-def debug_db():
-    try:
-        conn = psycopg2.connect(
-            host=os.getenv('DB_HOST'),
-            database=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASS'),
-            port=os.getenv('DB_PORT'),
-            sslmode='require'
-        )
-        cur = conn.cursor()
-        cur.execute('SELECT version()')
-        db_version = cur.fetchone()
-        cur.close()
-        conn.close()
-        return jsonify({
-            "status": "success", 
-            "version": db_version[0],
-            "config": {
-                "host": os.getenv('DB_HOST'),
-                "user": os.getenv('DB_USER'),
-                "port": os.getenv('DB_PORT'),
-                "db": os.getenv('DB_NAME')
-            }
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e),
-            "traceback": traceback.format_exc(),
-            "config": {
-                "host": os.getenv('DB_HOST'),
-                "user": os.getenv('DB_USER'),
-                "port": os.getenv('DB_PORT'),
-                "db": os.getenv('DB_NAME')
-            }
-        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
