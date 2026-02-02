@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Protocol: ARISE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Minimal extra styles since we reuse style.css */
+        .auth-container {
+            margin-top: 10vh;
+        }
+    </style>
+</head>
+
+<body>
+    <video autoplay muted loop playsinline class="video-background">
+        <source src="LW/sung-jin-woo-purple.3840x2160.mp4" type="video/mp4">
+    </video>
+    <div class="system-overlay"></div>
+
+    <div class="auth-wrapper fade-in">
+        <div class="auth-container">
+            <header class="auth-header">
+                <h1 class="logo-text">SYSTEM <span class="arise-text">LOGIN</span></h1>
+            </header>
+            <form class="system-form" id="loginForm">
+                <div class="form-group">
+                    <label>USERNAME / EMAIL / PHONE</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="username" placeholder="Hunter Name / Email / Phone" required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>PASSWORD</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="password" placeholder="••••••••" required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="system-btn">ENTER GATE</button>
+                </div>
+                <div class="auth-footer">
+                    <p>NEW AWAKENING? <a href="register.html" class="system-link">APPLY HERE</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            btn.innerText = "VERIFYING CREDENTIALS...";
+            btn.style.opacity = '0.7';
+
+            try {
+                const res = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showSystemMessage("ACCESS GRANTED");
+                    // Save user to localStorage
+                    localStorage.setItem('arise_user', JSON.stringify(data.user));
+                    setTimeout(() => window.location.href = 'scoreboard.html', 1000);
+                } else {
+                    showSystemMessage(`ERROR: ${data.error}`, true);
+                    btn.innerText = originalText;
+                    btn.style.opacity = '1';
+                }
+            } catch (err) {
+                console.error(err);
+                showSystemMessage("SYSTEM ERROR: CANNOT CONNECT TO SERVER", true);
+                btn.innerText = originalText;
+                btn.style.opacity = '1';
+            }
+        });
+    </script>
+</body>
+
+</html>

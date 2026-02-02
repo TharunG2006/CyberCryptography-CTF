@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Protocol: ARISE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <video autoplay muted loop playsinline class="video-background">
+        <source src="LW/sung-jin-woo-purple.3840x2160.mp4" type="video/mp4">
+    </video>
+    <div class="system-overlay"></div>
+
+    <div class="auth-wrapper fade-in">
+        <div class="auth-container">
+            <header class="auth-header">
+                <h1 class="logo-text">SYSTEM <span class="arise-text">ACCESS</span></h1>
+                <p class="auth-subtitle">IDENTIFICATION REQUIRED FOR ENTRY</p>
+            </header>
+
+            <form class="system-form" id="registerForm">
+                <div class="form-group">
+                    <label for="username">HUNTER NAME</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="username" placeholder="Enter your alias..." required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">CONTACT FREQUENCY</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="email" placeholder="email@guild.com" required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="contact">CONTACT NUMBER</label>
+                    <div class="input-wrapper">
+                        <input type="tel" id="contact" placeholder="0000000000" pattern="\d{10,15}" required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+
+
+
+                <div class="form-group">
+                    <label for="password">ACCESS KEY</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="password" placeholder="••••••••" required>
+                        <span class="input-focus-border"></span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="system-btn primary-btn">
+                        <span class="btn-text">INITIATE AWAKENING</span>
+                        <div class="btn-glitch"></div>
+                    </button>
+                </div>
+
+                <div class="auth-footer">
+                    <p>ALREADY AWAKENED? <a href="login.html" class="system-link">LOGIN HERE</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reusing the script for system messages -->
+    <script src="script.js"></script>
+    <script>
+        // Specific logic for registration page
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.querySelector('.btn-text').innerText;
+
+            // Gather form data
+            const formData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                contact: document.getElementById('contact').value,
+                password: document.getElementById('password').value
+            };
+
+            // Loading State
+            btn.querySelector('.btn-text').innerText = "PROCESSING...";
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'wait';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSystemMessage("REGISTRATION SUCCESSFUL");
+                    showSystemMessage("WELCOME, HUNTER.");
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1500);
+                } else {
+                    showSystemMessage(`ERROR: ${data.error || 'Registration Failed'}`, true);
+                    btn.querySelector('.btn-text').innerText = originalText;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showSystemMessage("SYSTEM ERROR: SEVER UNREACHABLE", true);
+                btn.querySelector('.btn-text').innerText = originalText;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        });
+    </script>
+</body>
+
+</html>

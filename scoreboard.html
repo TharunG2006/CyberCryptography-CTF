@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoreboard | Protocol: ARISE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- React & Babel for runtime compilation -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+
+<body>
+    <video autoplay muted loop playsinline class="video-background">
+        <source src="LW/monarch-of-shadows.3840x2160.mp4" type="video/mp4">
+    </video>
+    <div class="system-overlay"></div>
+
+    <!-- React Root -->
+    <div id="root"></div>
+    <div id="error-log"
+        style="color: red; padding: 20px; font-family: monospace; background: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; display: none;">
+    </div>
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            const div = document.getElementById('error-log');
+            div.style.display = 'block';
+            div.innerHTML += `<div><strong>Error:</strong> ${msg} <br/> <small>${url}:${line}:${col}</small></div><br/>`;
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+            const div = document.getElementById('error-log');
+            div.style.display = 'block';
+            div.innerHTML += `<div><strong>Promise Rejection:</strong> ${event.reason}</div><br/>`;
+        });
+    </script>
+
+    <!-- Application Script -->
+    <script type="text/babel" src="app.js"></script>
+</body>
+
+</html>

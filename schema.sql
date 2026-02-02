@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    guild VARCHAR(50),
+    contact_number VARCHAR(20),
+    password_hash VARCHAR(255) NOT NULL,
+    hp INT DEFAULT 16500,
+    mp INT DEFAULT 2800,
+    rank VARCHAR(10) DEFAULT 'E',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
