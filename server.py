@@ -12,6 +12,7 @@ app = Flask(__name__, static_url_path='', static_folder='.')
 CORS(app)  # Enable CORS for all routes
 
 def get_db_connection():
+    print(f"DEBUG: Connecting to DB Host: {os.getenv('DB_HOST')}, User: {os.getenv('DB_USER')}, DB: {os.getenv('DB_NAME')}, Port: {os.getenv('DB_PORT')}")
     try:
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST'),
@@ -23,7 +24,7 @@ def get_db_connection():
         )
         return conn
     except Exception as e:
-        print(f"Error connecting to database: {e}")
+        print(f"CRITICAL ERROR: Failed to connect to database. details: {e}")
         return None
 
 def init_db():
