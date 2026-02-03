@@ -25,7 +25,12 @@
     </video>
     <div class="system-overlay"></div>
 
-    <div class="auth-wrapper system-window-enter">
+    <div id="loading-screen">
+        <div class="loader-bar"></div>
+        <div class="loader-text">SYSTEM INITIALIZING...</div>
+    </div>
+
+    <div class="auth-wrapper" id="authWrapper">
         <div class="auth-container">
             <header class="auth-header">
                 <h1 class="logo-text">SYSTEM <span class="arise-text">LOGIN</span></h1>
@@ -58,6 +63,25 @@
 
     <script src="script.js"></script>
     <script>
+        // Loading Screen Logic
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loading-screen');
+            const authWrapper = document.getElementById('authWrapper');
+            const video = document.querySelector('video');
+
+            // Ensure video tries to play
+            if (video) video.play().catch(e => console.log("Auto-play prevented", e));
+
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    // Trigger System Window Animation NOW
+                    authWrapper.classList.add('system-window-enter');
+                }, 500);
+            }, 1000); // Minimum wait of 1s to feel "systematic"
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
