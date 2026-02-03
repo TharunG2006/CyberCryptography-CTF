@@ -465,6 +465,8 @@ h1 {
     height: auto;
     min-height: 550px;
     /* Ensure space for form */
+    padding: 3rem;
+    /* Restored Breathing Room */
 
     background: rgba(6, 17, 34, 0.6);
     /* Restore panel bg */
@@ -486,6 +488,8 @@ h1 {
         /* Open: Width expands FIRST */
         height 0.4s ease-in-out 0.4s,
         /* Open: Height expands LAST */
+        padding 0.4s ease-in-out 0.4s,
+        /* Open: Padding expands LAST */
         border 0.1s;
 
     box-shadow: var(--shadow-glow);
