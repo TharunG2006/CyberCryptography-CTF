@@ -238,5 +238,182 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+# --- CHALLENGE SYSTEM DATA ---
+
+@app.route('/api/challenges', methods=['GET'])
+def get_challenges():
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
+
+    try:
+        cur = conn.cursor()
+        
+        # Get all challenges
+        cur.execute("SELECT id, title, category, points, hint_cost FROM challenges ORDER BY id ASC")
+        challenges_data = cur.fetchall()
+
+        # Get solved challenges for user
+        cur.execute("SELECT challenge_id FROM user_solves WHERE user_id = %s", (user_id,))
+        solved_ids = [row[0] for row in cur.fetchall()]
+
+        # Get unlocked hints for user
+        cur.execute("SELECT challenge_id FROM user_hints WHERE user_id = %s", (user_id,))
+        unlocked_hints = [row[0] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+
+        challenges_list = []
+        for row in challenges_data:
+            c_id = row[0]
+            challenges_list.append({
+                'id': c_id,
+                'title': row[1],
+                'category': row[2],
+                'points': row[3],
+                'hint_cost': row[4],
+                'solved': c_id in solved_ids,
+                'hint_unlocked': c_id in unlocked_hints
+            })
+            
+        return jsonify(challenges_list), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/challenge_details', methods=['GET'])
+def get_challenge_details():
+    user_id = request.args.get('user_id')
+    challenge_id = request.args.get('challenge_id')
+    
+    if not user_id or not challenge_id:
+        return jsonify({'error': 'Missing params'}), 400
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # Get Description & Hint (if unlocked)
+        cur.execute("SELECT description, hint FROM challenges WHERE id = %s", (challenge_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'Challenge not found'}), 404
+            
+        description = row[0]
+        full_hint = row[1]
+        
+        # Check if hint is unlocked
+        cur.execute("SELECT 1 FROM user_hints WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
+        is_hint_unlocked = cur.fetchone() is not None
+        
+        response = {
+            'description': description,
+            'hint': full_hint if is_hint_unlocked else None
+        }
+        
+        cur.close()
+        conn.close()
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/submit_flag', methods=['POST'])
+def submit_flag():
+    data = request.json
+    user_id = data.get('user_id')
+    challenge_id = data.get('challenge_id')
+    submitted_flag = data.get('flag')
+
+    if not all([user_id, challenge_id, submitted_flag]):
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # 1. Check if already solved
+        cur.execute("SELECT 1 FROM user_solves WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
+        if cur.fetchone():
+            return jsonify({'message': 'Already Solved', 'correct': True, 'first_time': False}), 200
+
+        # 2. Verify Flag
+        cur.execute("SELECT flag, points FROM challenges WHERE id = %s", (challenge_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'Challenge not found'}), 404
+        
+        real_flag = row[0]
+        points = row[1]
+
+        # Case-insensitive comparison and whitespace stripping
+        if submitted_flag.strip() == real_flag.strip():
+            # Correct!
+            # Record solve
+            cur.execute("INSERT INTO user_solves (user_id, challenge_id) VALUES (%s, %s)", (user_id, challenge_id))
+            
+            # Update Score
+            cur.execute("UPDATE users SET score = score + %s WHERE id = %s", (points, user_id))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            return jsonify({'message': 'Flag Correct!', 'correct': True, 'first_time': True, 'points_added': points}), 200
+        else:
+            cur.close()
+            conn.close()
+            return jsonify({'message': 'Incorrect Flag', 'correct': False}), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/unlock_hint', methods=['POST'])
+def unlock_hint():
+    data = request.json
+    user_id = data.get('user_id')
+    challenge_id = data.get('challenge_id')
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Check if already unlocked
+        cur.execute("SELECT 1 FROM user_hints WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
+        if cur.fetchone():
+            cur.execute("SELECT hint FROM challenges WHERE id = %s", (challenge_id,))
+            hint = cur.fetchone()[0]
+            return jsonify({'hint': hint, 'status': 'ALREADY_UNLOCKED'}), 200
+
+        # Get cost and user score
+        cur.execute("SELECT hint, hint_cost FROM challenges WHERE id = %s", (challenge_id,))
+        row = cur.fetchone()
+        hint = row[0]
+        cost = row[1]
+
+        cur.execute("SELECT score FROM users WHERE id = %s", (user_id,))
+        user_score = cur.fetchone()[0]
+
+        if user_score >= cost:
+            # Deduct points
+            cur.execute("UPDATE users SET score = score - %s WHERE id = %s", (cost, user_id))
+            # Record unlock
+            cur.execute("INSERT INTO user_hints (user_id, challenge_id) VALUES (%s, %s)", (user_id, challenge_id))
+            conn.commit()
+            
+            cur.close()
+            conn.close()
+            return jsonify({'hint': hint, 'status': 'UNLOCKED', 'check_deducted': cost}), 200
+        else:
+            cur.close()
+            conn.close()
+            return jsonify({'error': 'Insufficient Points'}), 403
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

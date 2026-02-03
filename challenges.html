@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenges | Protocol: ARISE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <video autoplay muted loop playsinline class="video-background">
+        <source src="LW/login-bg.mp4" type="video/mp4">
+    </video>
+    <div class="system-overlay"></div>
+
+    <div class="main-interface">
+        <header class="system-header">
+            <h1 class="logo-text">SYSTEM <span class="arise-text">CHALLENGES</span></h1>
+            <nav class="system-nav">
+                <a href="scoreboard.html" class="nav-item">SCOREBOARD</a>
+                <a href="#" class="nav-item active">MISSIONS</a>
+                <a href="#" class="nav-item" id="logoutBtn" style="color: #ff3333;">LOGOUT</a>
+            </nav>
+        </header>
+
+        <div class="challenge-container">
+            <!-- Difficulty Sections will be injected here by JS -->
+            <div id="challenge-grid" class="challenge-grid"></div>
+        </div>
+    </div>
+
+    <!-- Challenge Modal -->
+    <div id="challenge-modal" class="modal-overlay">
+        <div class="modal-content system-panel">
+            <button class="close-modal">&times;</button>
+            <h2 id="modal-title" class="modal-title">CHALLENGE TITLE</h2>
+            <div class="modal-meta">
+                <span id="modal-category" class="meta-tag">CATEGORY</span>
+                <span id="modal-points" class="meta-tag points">100 PTS</span>
+            </div>
+
+            <div class="modal-body">
+                <div id="modal-description" class="challenge-desc">
+                    Loading description...
+                </div>
+
+                <div class="hint-section">
+                    <button id="unlock-hint-btn" class="system-btn warning-btn">
+                        UNLOCK HINT (-<span id="hint-cost">0</span> PTS)
+                    </button>
+                    <div id="hint-display" class="hint-text hidden"></div>
+                </div>
+
+                <div class="flag-section">
+                    <input type="text" id="flag-input" class="system-input" placeholder="flag{...}">
+                    <button id="submit-flag-btn" class="system-btn primary-btn">SUBMIT FLAG</button>
+                </div>
+                <div id="submission-feedback" class="feedback-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="challenges.js"></script>
+</body>
+
+</html>
