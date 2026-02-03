@@ -416,20 +416,120 @@ h1 {
     width: 100%;
 }
 
+/* --- Interactive System Window (Dot -> Line -> Box) --- */
+
 .auth-container {
+    /* Base State: The Blinking Dot */
+    width: 12px;
+    height: 12px;
+    background: var(--primary-blue);
+    overflow: hidden;
+    /* Hides form content when collapsed */
+    border-radius: 50%;
+    /* Circle */
+
+    /* Centering */
+    position: absolute;
+    /* Ensures it stays centered */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* Animation & Transitions */
+    animation: dotPulse 1.5s infinite;
+    box-shadow: 0 0 10px var(--primary-blue);
+    border: none;
+    /* No border in dot mode */
+    backdrop-filter: none;
+
+    /* Large invisible hit area for easy hovering */
+    outline: 50px solid transparent;
+    transition:
+        background 0.3s,
+        border-radius 0.3s,
+        width 0.4s ease-in-out 0.4s,
+        /* Close: Width shrinks LAST */
+        height 0.4s ease-in-out 0s,
+        /* Close: Height shrinks FIRST */
+        border 0.1s;
+
+    z-index: 100;
+}
+
+/* --- Expanded State (Hover) --- */
+.auth-container:hover,
+.auth-container:focus-within {
+    /* Final Box State */
     width: 100%;
     max-width: 420px;
-    /* Reduced from 500px */
-    background: rgba(6, 17, 34, 0.4);
-    /* More transparent than panel-bg */
-    border: var(--system-border);
-    padding: 2.5rem;
-    /* Reduced from 3rem */
-    box-shadow: var(--shadow-glow);
-    position: relative;
-    backdrop-filter: blur(10px);
+    height: auto;
+    min-height: 550px;
+    /* Ensure space for form */
+
+    background: rgba(6, 17, 34, 0.6);
+    /* Restore panel bg */
     border-radius: 4px;
-    margin: auto;
+    /* Square corners */
+    border: var(--system-border);
+    backdrop-filter: blur(10px);
+
+    animation: none;
+    /* Stop blinking */
+    outline: 0 solid transparent;
+    /* Remove hit area hack */
+
+    /* Open Sequence: Width FIRST, then Height */
+    transition:
+        background 0.3s,
+        border-radius 0.3s,
+        width 0.4s ease-in-out 0s,
+        /* Open: Width expands FIRST */
+        height 0.4s ease-in-out 0.4s,
+        /* Open: Height expands LAST */
+        border 0.1s;
+
+    box-shadow: var(--shadow-glow);
+}
+
+/* Hide internal elements when collapsed to prevent glitches */
+.auth-container>* {
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    pointer-events: none;
+}
+
+/* Show internal elements ONLY when fully expanded */
+.auth-container:hover>*,
+.auth-container:focus-within>* {
+    opacity: 1;
+    transition: opacity 0.4s ease-in 0.8s;
+    /* Delay until box is open */
+    pointer-events: auto;
+}
+
+@keyframes dotPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 10px var(--primary-blue);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.5);
+        box-shadow: 0 0 20px var(--primary-blue);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 10px var(--primary-blue);
+        opacity: 0.8;
+    }
+}
+
+/* Remove old class-based animation */
+.system-window-enter {
+    animation: none;
 }
 
 /* Decorative corners */
