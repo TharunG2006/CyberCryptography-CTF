@@ -623,3 +623,33 @@ h1 {
     background-size: 4px 4px;
     background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.2) 1px, rgba(0, 0, 0, 0.2) 2px);
 }
+
+/* System Window Open Animation */
+@keyframes systemWindowOpen {
+    0% {
+        clip-path: polygon(50% 49%, 50% 51%, 50% 51%, 50% 49%);
+        opacity: 0;
+        transform: scale(0.95);
+        filter: brightness(2);
+        /* Flash start */
+    }
+
+    30% {
+        clip-path: polygon(0 49%, 100% 49%, 100% 51%, 0 51%);
+        /* Horizontal Line */
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1.5);
+    }
+
+    100% {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        /* Full Reveal */
+        opacity: 1;
+        filter: brightness(1);
+    }
+}
+
+.system-window-enter {
+    animation: systemWindowOpen 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
