@@ -1048,6 +1048,8 @@ h1 {
     pointer-events: none;
     transition: opacity 0.3s ease;
     backdrop-filter: blur(5px);
+    will-change: opacity;
+    /* Performance Optimization */
 }
 
 .modal-overlay.active {
@@ -1062,9 +1064,14 @@ h1 {
     width: 90%;
     max-width: 600px;
     position: relative;
-    transform: scale(0.8);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 0 50px rgba(45, 226, 230, 0.2);
+    transform: scale(0.9);
+    /* Start slightly larger to reduce travel distance */
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Faster, simpler curve */
+    box-shadow: 0 0 30px rgba(45, 226, 230, 0.2);
+    /* Reduced shadow spread */
+    will-change: transform;
+    /* Performance Optimization */
 }
 
 .modal-overlay.active .modal-content {
