@@ -427,7 +427,7 @@ h1 {
     /* Reduced from 3rem */
     box-shadow: var(--shadow-glow);
     position: relative;
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(10px);
     border-radius: 4px;
     margin: auto;
 }
@@ -625,13 +625,12 @@ h1 {
 }
 
 /* System Window Open Animation */
+/* System Window Open Animation */
 @keyframes systemWindowOpen {
     0% {
         clip-path: polygon(50% 49%, 50% 51%, 50% 51%, 50% 49%);
         opacity: 0;
         transform: scale(0.95);
-        filter: brightness(2);
-        /* Flash start */
     }
 
     30% {
@@ -639,19 +638,18 @@ h1 {
         /* Horizontal Line */
         opacity: 1;
         transform: scale(1);
-        filter: brightness(1.5);
     }
 
     100% {
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
         /* Full Reveal */
         opacity: 1;
-        filter: brightness(1);
     }
 }
 
 .system-window-enter {
-    animation: systemWindowOpen 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation: systemWindowOpen 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    will-change: clip-path, transform;
 }
 
 /* Loading Screen */
