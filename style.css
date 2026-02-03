@@ -601,6 +601,26 @@ h1 {
     width: 100%;
 }
 
+.input-group-row {
+    display: flex;
+    gap: 10px;
+}
+
+.country-select {
+    background: rgba(6, 17, 34, 0.6);
+    border: 1px solid #333;
+    color: var(--text-main);
+    padding: 12px;
+    font-family: var(--font-body);
+    outline: none;
+    width: 120px;
+    cursor: pointer;
+}
+
+.country-select:focus {
+    border-color: var(--primary-blue);
+}
+
 .system-form input {
     width: 100%;
     background: rgba(0, 0, 0, 0.4);
@@ -829,77 +849,82 @@ h1 {
         transform: translateX(-100%);
     }
 
-    /* --- Mobile Responsiveness --- */
-    @media (max-width: 768px) {
-
-        /* Layout Adjustments */
-        .main-interface {
-            padding: 10px;
-        }
-
-        body {
-            padding: 10px;
-            /* Reduce body padding */
-        }
-
-        /* Auth Container - Mobile */
-        .auth-container {
-            /* Base Dot State on Mobile - slightly larger for touch */
-            width: 20px;
-            height: 20px;
-        }
-
-        /* Expanded State on Mobile */
-        .auth-container:hover,
-        .auth-container:focus-within,
-        .auth-container:active {
-            /* Support tap on mobile */
-            width: 95%;
-            /* Use percentage width */
-            max-width: none;
-            /* Allow full width */
-            min-height: 50vh;
-            /* Dynamic height */
-            padding: 1.5rem;
-            /* Reduced padding for small screens */
-
-            /* Adjust positioning if needed */
-            transform: translate(-50%, -50%);
-            /* Keep centered */
-        }
-
-        /* Typography Scaling */
-        .logo-text {
-            font-size: 1.8rem;
-            /* Smaller title */
-            letter-spacing: 1px;
-        }
-
-        .auth-subtitle {
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-        }
-
-        .system-form input {
-            font-size: 1rem;
-            /* Prevent auto-zoom on iPhone */
-            padding: 10px;
-        }
-
-        .system-btn {
-            padding: 12px;
-            font-size: 1rem;
-        }
-
-        /* Adjust Grid for Scoreboard */
-        .grid-layout {
-            grid-template-columns: 1fr;
-            /* Stack columns */
-            gap: 1rem;
-        }
-
-        .panel {
-            padding: 1rem;
-            /* Compact panels */
-        }
+    100% {
+        transform: translateX(200%);
     }
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+
+    /* Layout Adjustments */
+    .main-interface {
+        padding: 10px;
+    }
+
+    body {
+        padding: 10px;
+        /* Reduce body padding */
+    }
+
+    /* Auth Container - Mobile */
+    .auth-container {
+        /* Base Dot State on Mobile - slightly larger for touch */
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Expanded State on Mobile */
+    .auth-container:hover,
+    .auth-container:focus-within,
+    .auth-container:active {
+        /* Support tap on mobile */
+        width: 95%;
+        /* Use percentage width */
+        max-width: none;
+        /* Allow full width */
+        min-height: 50vh;
+        /* Dynamic height */
+        padding: 1.5rem;
+        /* Reduced padding for small screens */
+
+        /* Adjust positioning if needed */
+        transform: translate(-50%, -50%);
+        /* Keep centered */
+    }
+
+    /* Typography Scaling */
+    .logo-text {
+        font-size: 1.8rem;
+        /* Smaller title */
+        letter-spacing: 1px;
+    }
+
+    .auth-subtitle {
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+    }
+
+    .system-form input {
+        font-size: 1rem;
+        /* Prevent auto-zoom on iPhone */
+        padding: 10px;
+    }
+
+    .system-btn {
+        padding: 12px;
+        font-size: 1rem;
+    }
+
+    /* Adjust Grid for Scoreboard */
+    .grid-layout {
+        grid-template-columns: 1fr;
+        /* Stack columns */
+        gap: 1rem;
+    }
+
+    .panel {
+        padding: 1rem;
+        /* Compact panels */
+    }
+}

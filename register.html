@@ -50,13 +50,18 @@
 
                 <div class="form-group">
                     <label for="contact">CONTACT NUMBER</label>
-                    <div class="input-wrapper">
-                        <input type="tel" id="contact" placeholder="0000000000" pattern="\d{10,15}" required>
+                    <div class="input-wrapper input-group-row">
+                        <select id="country_code" class="country-select">
+                            <option value="+91">+91 (IND)</option>
+                            <option value="+1">+1 (USA)</option>
+                            <option value="+44">+44 (UK)</option>
+                            <option value="+81">+81 (JPN)</option>
+                            <option value="+82">+82 (KOR)</option>
+                        </select>
+                        <input type="tel" id="contact" placeholder="9876543210" maxlength="10" required>
                         <span class="input-focus-border"></span>
                     </div>
                 </div>
-
-
 
                 <div class="form-group">
                     <label for="password">ACCESS KEY</label>
@@ -95,7 +100,6 @@
                 loader.style.opacity = '0';
                 setTimeout(() => {
                     loader.style.display = 'none';
-                    // The Dot is now visible by default logic in CSS
                 }, 500);
             }, 1000);
         });
@@ -106,16 +110,25 @@
             const btn = e.target.querySelector('button');
             const originalText = btn.querySelector('.btn-text').innerText;
 
+            const contactInput = document.getElementById('contact').value;
+
+            // Strict 10-digit validation
+            if (!/^\d{10}$/.test(contactInput)) {
+                showSystemMessage("ERROR: INVALID CONTACT (MUST BE 10 DIGITS)", true);
+                return;
+            }
+
             // Gather form data
             const formData = {
                 username: document.getElementById('username').value,
                 email: document.getElementById('email').value,
-                contact: document.getElementById('contact').value,
+                contact: contactInput,
+                country_code: document.getElementById('country_code').value,
                 password: document.getElementById('password').value
             };
 
             // Loading State
-            btn.querySelector('.btn-text').innerText = "PROCESSING...";
+            btn.querySelector('.btn-text').innerText = "TRANSMITTING DATA...";
             btn.style.opacity = '0.7';
             btn.style.cursor = 'wait';
 
@@ -132,10 +145,11 @@
 
                 if (response.ok) {
                     showSystemMessage("REGISTRATION SUCCESSFUL");
-                    showSystemMessage("WELCOME, HUNTER.");
+                    showSystemMessage("CHECK EMAIL FOR ACTIVATION LINK");
+                    btn.querySelector('.btn-text').innerText = "CHECK EMAIL";
                     setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 1500);
+                    }, 3000);
                 } else {
                     showSystemMessage(`ERROR: ${data.error || 'Registration Failed'}`, true);
                     btn.querySelector('.btn-text').innerText = originalText;
@@ -144,7 +158,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showSystemMessage("SYSTEM ERROR: SEVER UNREACHABLE", true);
+                showSystemMessage("SYSTEM ERROR: SERVER UNREACHABLE", true);
                 btn.querySelector('.btn-text').innerText = originalText;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';

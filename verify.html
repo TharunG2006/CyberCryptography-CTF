@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocol: ARISE | Access Granted</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .verify-container {
+            text-align: center;
+            z-index: 10;
+            background: rgba(6, 17, 34, 0.85);
+            padding: 3rem;
+            border: 1px solid var(--primary-blue);
+            box-shadow: 0 0 30px rgba(45, 226, 230, 0.2);
+            border-radius: 4px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+        }
+
+        .verify-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-blue);
+            box-shadow: 0 0 10px var(--primary-blue);
+        }
+
+        .icon-check {
+            font-size: 4rem;
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            animation: pulse-icon 2s infinite;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        p {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        @keyframes pulse-icon {
+            0% {
+                text-shadow: 0 0 10px var(--primary-blue);
+                transform: scale(1);
+            }
+
+            50% {
+                text-shadow: 0 0 30px var(--primary-blue);
+                transform: scale(1.1);
+            }
+
+            100% {
+                text-shadow: 0 0 10px var(--primary-blue);
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <video autoplay muted loop playsinline class="video-background">
+        <source src="LW/login-bg.mp4" type="video/mp4">
+    </video>
+    <div class="system-overlay"></div>
+
+    <div class="verify-container fade-in">
+        <div class="icon-check">✔</div>
+        <h1>SYSTEM ACCESS GRANTED</h1>
+        <p>Your identity frequency has been verified. Welcome to the System, Hunter.</p>
+
+        <button onclick="window.location.href='login.html'" class="system-btn">
+            ENTER SYSTEM
+        </button>
+    </div>
+
+    <script>
+        // Check URL params for errors
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error')) {
+            document.querySelector('h1').innerText = "ACCESS DENIED";
+            document.querySelector('h1').style.color = "var(--alert-red)";
+            document.querySelector('.icon-check').innerText = "✖";
+            document.querySelector('.icon-check').style.color = "var(--alert-red)";
+            document.querySelector('p').innerText = "Invalid verification token. Authentication failed.";
+        }
+    </script>
+</body>
+
+</html>
