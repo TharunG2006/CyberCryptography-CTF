@@ -15,18 +15,34 @@
 
 <body>
     <video autoplay muted loop playsinline class="video-background">
-        <source src="LW/login-bg.mp4" type="video/mp4">
+        <source src="LW/monarch-of-shadows.1920x1080.mp4" type="video/mp4">
     </video>
     <div class="system-overlay"></div>
+
+    <!-- Loading Screen -->
+    <div id="mission-loader">
+        <div class="loader-content">
+            <div class="typing-text">INITIALIZING MISSION DATA...</div>
+            <div class="loader-bar-container">
+                <div class="loader-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hover Navigation -->
+    <div class="hover-nav-container">
+        <div class="hover-handle"></div>
+        <nav class="hover-nav-content">
+            <a href="scoreboard.html" class="nav-link">SCOREBOARD</a>
+            <a href="challenges.html" class="nav-link active">MISSIONS</a>
+            <a href="#" class="nav-link logout" id="logoutBtn">LOGOUT</a>
+        </nav>
+    </div>
 
     <div class="main-interface">
         <header class="system-header">
             <h1 class="logo-text">SYSTEM <span class="arise-text">CHALLENGES</span></h1>
-            <nav class="system-nav">
-                <a href="scoreboard.html" class="nav-item">SCOREBOARD</a>
-                <a href="#" class="nav-item active">MISSIONS</a>
-                <a href="#" class="nav-item" id="logoutBtn" style="color: #ff3333;">LOGOUT</a>
-            </nav>
+            <!-- Old Nav Removed -->
         </header>
 
         <div class="challenge-container">

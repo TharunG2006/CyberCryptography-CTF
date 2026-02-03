@@ -24,6 +24,17 @@
     </video>
     <div class="system-overlay"></div>
 
+    <!-- Hover Navigation -->
+    <div class="hover-nav-container">
+        <div class="hover-handle"></div>
+        <nav class="hover-nav-content">
+            <a href="scoreboard.html" class="nav-link active">SCOREBOARD</a>
+            <a href="challenges.html" class="nav-link">MISSIONS</a>
+            <a href="#" class="nav-link logout"
+                onclick="localStorage.removeItem('user'); window.location.href='login.html'">LOGOUT</a>
+        </nav>
+    </div>
+
     <!-- React Root -->
     <div id="root"></div>
     <div id="error-log"

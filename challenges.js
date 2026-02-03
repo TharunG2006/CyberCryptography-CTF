@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(localStorage.getItem('arise_user'));
 
     if (!user || !user.id) {
         window.location.href = 'login.html';
@@ -15,9 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const categories = ["Easy", "Medium", "Hard", "Extreme"];
 
     async function loadChallenges() {
+        // Overlay is visible by default in HTML
+
         try {
             const response = await fetch(`/api/challenges?user_id=${user.id}`);
             const challenges = await response.json();
+
+            // Artificial delay to let the typing animation finish if data loads too fast
+            await new Promise(r => setTimeout(r, 2000));
+
+            const loader = document.getElementById('mission-loader');
+            if (loader) {
+                loader.classList.add('fade-out');
+                setTimeout(() => loader.remove(), 1000); // Remove from DOM after transition
+            }
 
             grid.innerHTML = ''; // Clear existing
 
@@ -62,14 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function openChallenge(challenge) {
+    function openChallenge(challenge) {
         currentChallengeId = challenge.id;
 
-        // Reset Modal
+        // Reset Modal with Data (Now Instant!)
         document.getElementById('modal-title').innerText = challenge.title;
         document.getElementById('modal-category').innerText = challenge.category;
         document.getElementById('modal-points').innerText = `${challenge.points} PTS`;
-        document.getElementById('modal-description').innerText = "Loading details...";
+        document.getElementById('modal-description').innerText = challenge.description || "No description available."; // Use pre-loaded description
+
         document.getElementById('hint-display').classList.add('hidden');
         document.getElementById('submission-feedback').innerText = "";
         document.getElementById('flag-input').value = "";
@@ -77,29 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup Hint Button
         const hintBtn = document.getElementById('unlock-hint-btn');
         const hintCost = document.getElementById('hint-cost');
+
         if (challenge.hint_unlocked) {
             hintBtn.style.display = 'none';
+            // Show hint immediately if unlocked
+            showHint(challenge.hint);
         } else {
             hintBtn.style.display = 'inline-block';
             hintCost.innerText = challenge.hint_cost;
         }
 
         modal.classList.add('active');
-
-        // Fetch Details
-        try {
-            const res = await fetch(`/api/challenge_details?user_id=${user.id}&challenge_id=${challenge.id}`);
-            const details = await res.json();
-
-            document.getElementById('modal-description').innerText = details.description;
-
-            if (details.hint) {
-                // Hint already unlocked
-                showHint(details.hint);
-            }
-        } catch (e) {
-            document.getElementById('modal-description').innerText = "Error loading details.";
-        }
     }
 
     function showHint(text) {
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('user');
+        localStorage.removeItem('arise_user');
         window.location.href = 'login.html';
     });
 

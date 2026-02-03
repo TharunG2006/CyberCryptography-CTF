@@ -255,7 +255,7 @@ def get_challenges():
         cur = conn.cursor()
         
         # Get all challenges
-        cur.execute("SELECT id, title, category, points, hint_cost FROM challenges ORDER BY id ASC")
+        cur.execute("SELECT id, title, category, points, hint_cost, description, hint FROM challenges ORDER BY id ASC")
         challenges_data = cur.fetchall()
 
         # Get solved challenges for user
@@ -272,6 +272,8 @@ def get_challenges():
         challenges_list = []
         for row in challenges_data:
             c_id = row[0]
+            is_hint_unlocked = c_id in unlocked_hints
+            
             challenges_list.append({
                 'id': c_id,
                 'title': row[1],
@@ -279,48 +281,16 @@ def get_challenges():
                 'points': row[3],
                 'hint_cost': row[4],
                 'solved': c_id in solved_ids,
-                'hint_unlocked': c_id in unlocked_hints
+                'hint_unlocked': is_hint_unlocked,
+                'description': row[5],
+                # Only send hint text if unlocked, else send None or masked
+                'hint': row[6] if is_hint_unlocked else None
             })
             
         return jsonify(challenges_list), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/challenge_details', methods=['GET'])
-def get_challenge_details():
-    user_id = request.args.get('user_id')
-    challenge_id = request.args.get('challenge_id')
-    
-    if not user_id or not challenge_id:
-        return jsonify({'error': 'Missing params'}), 400
-
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        
-        # Get Description & Hint (if unlocked)
-        cur.execute("SELECT description, hint FROM challenges WHERE id = %s", (challenge_id,))
-        row = cur.fetchone()
-        if not row:
-            return jsonify({'error': 'Challenge not found'}), 404
-            
-        description = row[0]
-        full_hint = row[1]
-        
-        # Check if hint is unlocked
-        cur.execute("SELECT 1 FROM user_hints WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
-        is_hint_unlocked = cur.fetchone() is not None
-        
-        response = {
-            'description': description,
-            'hint': full_hint if is_hint_unlocked else None
-        }
-        
-        cur.close()
-        conn.close()
-        return jsonify(response), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/submit_flag', methods=['POST'])
 def submit_flag():

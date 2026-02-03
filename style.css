@@ -953,8 +953,21 @@ h1 {
 
 .box-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+    /* Force 3 columns as requested */
     gap: 20px;
+}
+
+@media (max-width: 900px) {
+    .box-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .box-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 .challenge-card {
@@ -1123,4 +1136,184 @@ h1 {
 
 .feedback-text.error {
     color: #ff3333;
+}
+
+/* --- HOVER NAVIGATION BAR --- */
+.hover-nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    height: 10px;
+    /* Trigger area */
+    transition: height 0.3s ease;
+}
+
+.hover-nav-container:hover {
+    height: 80px;
+    /* Expanded height */
+}
+
+/* The expanding panel */
+.hover-nav-content {
+    background: rgba(6, 17, 34, 0.95);
+    border-bottom: 2px solid var(--primary-blue);
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    transform: translateY(-100%);
+    transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.hover-nav-container:hover .hover-nav-content {
+    transform: translateY(0);
+}
+
+/* Visual Handle (The glowing line) */
+.hover-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 3px;
+    background: var(--primary-blue);
+    border-radius: 0 0 50% 50%;
+    box-shadow: 0 0 15px var(--primary-blue);
+    opacity: 0.8;
+    transition: opacity 0.3s;
+    z-index: 10000;
+}
+
+.hover-nav-container:hover .hover-handle {
+    opacity: 0;
+    /* Hide handle when open */
+}
+
+.nav-link {
+    color: #fff;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    padding: 10px 25px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+    text-transform: uppercase;
+}
+
+.nav-link:hover {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 15px rgba(45, 226, 230, 0.2);
+    background: rgba(45, 226, 230, 0.05);
+    transform: translateY(2px);
+}
+
+.nav-link.active {
+    color: var(--primary-blue);
+    border-bottom: 2px solid var(--primary-blue);
+}
+
+.nav-link.logout {
+    color: #ff3333;
+}
+
+
+/* --- MISSION LOADER (Typing Animation) --- */
+#mission-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 1s ease-out;
+}
+
+.loader-content {
+    text-align: center;
+    width: 300px;
+    /* Fixed width for consistent typing alignment */
+}
+
+.typing-text {
+    font-family: 'Orbitron', monospace;
+    color: var(--primary-blue);
+    font-size: 1.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 3px solid var(--primary-blue);
+    /* Cursor */
+    width: 0;
+    animation:
+        typing 2s steps(30, end) forwards,
+        blink-caret 0.75s step-end infinite;
+    margin: 0 auto 20px auto;
+}
+
+/* Ensure width expands to fit text eventually */
+@keyframes typing {
+    from {
+        width: 0
+    }
+
+    to {
+        width: 100%
+    }
+}
+
+@keyframes blink-caret {
+
+    from,
+    to {
+        border-color: transparent
+    }
+
+    50% {
+        border-color: var(--primary-blue)
+    }
+}
+
+.loader-bar-container {
+    width: 100%;
+    height: 4px;
+    background: #333;
+    position: relative;
+    overflow: hidden;
+}
+
+.loader-bar-fill {
+    height: 100%;
+    background: var(--primary-blue);
+    width: 0%;
+    animation: loadBar 2.5s ease-in-out forwards;
+}
+
+@keyframes loadBar {
+    0% {
+        width: 0%;
+    }
+
+    50% {
+        width: 40%;
+    }
+
+    100% {
+        width: 100%;
+    }
+}
+
+.fade-out {
+    opacity: 0;
+    pointer-events: none;
 }
