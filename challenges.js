@@ -157,6 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
             feedback.innerText = data.message;
             if (data.correct) {
                 feedback.className = "feedback-text success";
+
+                // Update Local User Data
+                if (data.new_score !== undefined) user.score = data.new_score;
+
+                if (data.new_rank && data.new_rank !== user.rank) {
+                    alert(`⚠️ SYSTEM ALERT: RANK UPGRADED TO [ ${data.new_rank}-RANK ]`);
+                    user.rank = data.new_rank;
+                }
+
+                // Save updated user state
+                localStorage.setItem('arise_user', JSON.stringify(user));
+
                 setTimeout(() => {
                     modal.classList.remove('active');
                     loadChallenges(); // Refresh grid state

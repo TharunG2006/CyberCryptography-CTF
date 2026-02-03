@@ -1166,7 +1166,8 @@ h1 {
 .hover-nav-content {
     background: rgba(6, 17, 34, 0.95);
     border-bottom: 2px solid var(--primary-blue);
-    height: 100%;
+    height: 80px;
+    /* Fixed height to prevents text clipping when closed */
     display: flex;
     justify-content: center;
     align-items: center;

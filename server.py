@@ -323,16 +323,36 @@ def submit_flag():
         # Case-insensitive comparison and whitespace stripping
         if submitted_flag.strip() == real_flag.strip():
             # Correct!
-            # Record solve
+            # Record solve (Ignore conflict if repeat submission happens rapidly)
+            # cursor should already handle repeats via earlier check, but good to be safe
             cur.execute("INSERT INTO user_solves (user_id, challenge_id) VALUES (%s, %s)", (user_id, challenge_id))
             
             # Update Score
-            cur.execute("UPDATE users SET score = score + %s WHERE id = %s", (points, user_id))
+            cur.execute("UPDATE users SET score = score + %s WHERE id = %s RETURNING score", (points, user_id))
+            new_score = cur.fetchone()[0]
+
+            # Calculate New Rank
+            new_rank = 'E'
+            if new_score >= 10000: new_rank = 'S'
+            elif new_score >= 5000: new_rank = 'A'
+            elif new_score >= 2500: new_rank = 'B'
+            elif new_score >= 1000: new_rank = 'C'
+            elif new_score >= 500: new_rank = 'D'
+
+            # Update Rank
+            cur.execute("UPDATE users SET rank = %s WHERE id = %s", (new_rank, user_id))
             
             conn.commit()
             cur.close()
             conn.close()
-            return jsonify({'message': 'Flag Correct!', 'correct': True, 'first_time': True, 'points_added': points}), 200
+            return jsonify({
+                'message': 'Flag Correct!', 
+                'correct': True, 
+                'first_time': True, 
+                'points_added': points,
+                'new_score': new_score,
+                'new_rank': new_rank
+            }), 200
         else:
             cur.close()
             conn.close()
