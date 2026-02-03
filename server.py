@@ -333,11 +333,11 @@ def submit_flag():
 
             # Calculate New Rank
             new_rank = 'E'
-            if new_score >= 10000: new_rank = 'S'
-            elif new_score >= 5000: new_rank = 'A'
-            elif new_score >= 2500: new_rank = 'B'
-            elif new_score >= 1000: new_rank = 'C'
-            elif new_score >= 500: new_rank = 'D'
+            if new_score >= 3000: new_rank = 'S'
+            elif new_score >= 1500: new_rank = 'A'
+            elif new_score >= 800: new_rank = 'B'
+            elif new_score >= 400: new_rank = 'C'
+            elif new_score >= 100: new_rank = 'D'
 
             # Update Rank
             cur.execute("UPDATE users SET rank = %s WHERE id = %s", (new_rank, user_id))

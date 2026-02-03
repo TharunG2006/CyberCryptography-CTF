@@ -159,11 +159,11 @@ const App = () => {
     };
 
     const calculateRank = (score) => {
-        if (score >= 10000) return 'S';
-        if (score >= 5000) return 'A';
-        if (score >= 2500) return 'B';
-        if (score >= 1000) return 'C';
-        if (score >= 500) return 'D';
+        if (score >= 3000) return 'S';
+        if (score >= 1500) return 'A';
+        if (score >= 800) return 'B';
+        if (score >= 400) return 'C';
+        if (score >= 100) return 'D';
         return 'E';
     };
 
