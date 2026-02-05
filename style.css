@@ -1183,19 +1183,45 @@ h1 {
 }
 
 /* Visual Handle (The glowing line) */
+/* Visual Handle (The glowing tab) */
 .hover-handle {
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 300px;
-    height: 3px;
-    background: var(--primary-blue);
-    border-radius: 0 0 50% 50%;
+    width: 180px;
+    height: 30px;
+    background: rgba(6, 17, 34, 0.9);
+    border: 1px solid var(--primary-blue);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
     box-shadow: 0 0 15px var(--primary-blue);
-    opacity: 0.8;
-    transition: opacity 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
     z-index: 10000;
+    cursor: pointer;
+    animation: handle-pulse 2s infinite;
+    pointer-events: none;
+    /* Let hover pass through to container */
+}
+
+@keyframes handle-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(45, 226, 230, 0.4);
+        text-shadow: 0 0 5px rgba(45, 226, 230, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(45, 226, 230, 0.8);
+        text-shadow: 0 0 10px rgba(45, 226, 230, 0.8);
+    }
 }
 
 .hover-nav-container:hover .hover-handle {

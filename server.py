@@ -209,7 +209,7 @@ def login():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, password_hash, username, email, is_verified FROM users WHERE username = %s OR email = %s", 
+            "SELECT id, password_hash, username, email, is_verified, score, rank FROM users WHERE username = %s OR email = %s", 
             (username, username)
         )
         user = cur.fetchone()
@@ -228,7 +228,9 @@ def login():
                     'user': {
                         'id': user[0],
                         'username': user[2],
-                        'email': user[3]
+                        'email': user[3],
+                        'score': user[5],
+                        'rank': user[6]
                     }
                 }), 200
             else:
