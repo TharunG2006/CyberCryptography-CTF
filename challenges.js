@@ -60,7 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="card-title">${c.title}</div>
                         ${c.solved ? '<div class="solved-badge">SOLVED</div>' : ''}
                     `;
-                    card.addEventListener('click', () => openChallenge(c));
+                    // Only make clickable if not solved
+                    if (!c.solved) {
+                        card.addEventListener('click', () => openChallenge(c));
+                        card.style.cursor = 'pointer';
+                    } else {
+                        card.style.cursor = 'not-allowed';
+                        card.style.opacity = '0.7';
+                    }
                     boxContainer.appendChild(card);
                 });
 
@@ -82,7 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-points').innerText = `${challenge.points} PTS`;
         document.getElementById('modal-description').innerText = challenge.description || "No description available."; // Use pre-loaded description
 
-        document.getElementById('hint-display').classList.add('hidden');
+        // Clear and hide hint display to prevent old hints from showing
+        const hintDisplay = document.getElementById('hint-display');
+        hintDisplay.innerText = '';
+        hintDisplay.classList.add('hidden');
         document.getElementById('submission-feedback').innerText = "";
         document.getElementById('flag-input').value = "";
 
