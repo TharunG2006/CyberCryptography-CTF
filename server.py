@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__, static_url_path='', static_folder='.')
+app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # SMTP Configuration (Placeholders)
@@ -40,7 +40,7 @@ def send_verification_email(to_email, token):
     if not MAIL_PASSWORD:
         print("DEBUG: MAIL_PASSWORD is missing in environment variables.")
         # For demo purposes, print the link
-        print(f"VERIFICATION LINK: http://localhost:5000/api/verify_email/{token}")
+        print(f"VERIFICATION LINK: http://localhost:3000/api/verify_email/{token}")
         return
 
     try:
@@ -54,7 +54,7 @@ def send_verification_email(to_email, token):
         verification_link = f"https://solobreach-ctf.vercel.app/api/verify_email/{token}"
         # Fallback for local testing
         if os.getenv('FLASK_ENV') == 'development':
-             verification_link = f"http://127.0.0.1:5000/api/verify_email/{token}"
+             verification_link = f"http://localhost:3000/api/verify_email/{token}"
 
         body = f"""
         <html>
@@ -88,15 +88,11 @@ def send_verification_email(to_email, token):
 
 @app.route('/')
 def index():
-    return app.send_static_file('login.html')
-
-@app.route('/scoreboard')
-def scoreboard():
-    return app.send_static_file('scoreboard.html')
-
-@app.route('/login')
-def login_page():
-    return app.send_static_file('login.html')
+    return jsonify({
+        "message": "Protocol: ARISE Backend Online",
+        "frontend": "http://localhost:3000",
+        "status": "active"
+    })
 
 @app.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard():
@@ -186,12 +182,14 @@ def verify_email(token):
         conn.close()
 
         if user_id:
-            # Redirect to verify page
-            return redirect("/verify.html")
+            # Redirect to Next.js Login Page with Success
+            return redirect("http://localhost:3000/login?verified=true")
         else:
-            return redirect("/verify.html?error=invalid")
+            return redirect("http://localhost:3000/login?error=invalid_token")
     except Exception as e:
         return str(e), 500
+
+
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -408,4 +406,4 @@ def unlock_hint():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
