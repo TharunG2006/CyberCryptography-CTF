@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('challenge-modal');
     const closeModal = document.querySelector('.close-modal');
     let currentChallengeId = null;
+    let allChallenges = []; // Store challenges globally to update after hint unlock
 
     // Ordered Categories
     const categories = ["Easy", "Medium", "Hard", "Extreme"];
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/api/challenges?user_id=${user.id}`);
             const challenges = await response.json();
+            allChallenges = challenges; // Store globally for later updates
 
             // Artificial delay to let the typing animation finish if data loads too fast
             await new Promise(r => setTimeout(r, 2000));
@@ -137,6 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (res.ok) {
                 showHint(data.hint);
+                // Update the challenge in the global array so hint persists on reopen
+                const challenge = allChallenges.find(c => c.id === currentChallengeId);
+                if (challenge) {
+                    challenge.hint = data.hint;
+                    challenge.hint_unlocked = true;
+                }
             } else {
                 alert(data.error || "Failed to unlock hint");
             }
