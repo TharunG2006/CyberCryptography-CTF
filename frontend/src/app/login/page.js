@@ -11,6 +11,7 @@ export default function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
     // Check for verification status from URL
@@ -27,6 +28,7 @@ export default function LoginPage() {
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
+        setIsSubmitting(true);
 
         try {
             const res = await fetch("/api/login", {
@@ -41,9 +43,11 @@ export default function LoginPage() {
                 router.push("/scoreboard");
             } else {
                 setError(data.error);
+                setIsSubmitting(false);
             }
         } catch (err) {
             setError("System Unreachable");
+            setIsSubmitting(false);
         }
     };
 
@@ -91,6 +95,7 @@ export default function LoginPage() {
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full bg-black/40 border border-[var(--glass-border)] p-3 text-cyan-100 focus:outline-none focus:border-[var(--primary-blue)] focus:shadow-[0_0_15px_rgba(0,243,255,0.2)] transition-all placeholder:text-white/20"
                                     placeholder="ENTER ID"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -102,11 +107,20 @@ export default function LoginPage() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-black/40 border border-[var(--glass-border)] p-3 text-cyan-100 focus:outline-none focus:border-[var(--primary-blue)] focus:shadow-[0_0_15px_rgba(0,243,255,0.2)] transition-all placeholder:text-white/20"
                                     placeholder="ENTER KEY"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="pt-4 flex justify-center">
-                                <CyberButton className="w-full">AUTHENTICATE</CyberButton>
+                                <CyberButton className="w-full" disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <span className="flex items-center gap-2">
+                                            <span className="animate-spin">⟳</span> ACCESSING...
+                                        </span>
+                                    ) : (
+                                        "AUTHENTICATE"
+                                    )}
+                                </CyberButton>
                             </div>
                         </form>
 

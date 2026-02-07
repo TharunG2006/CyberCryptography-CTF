@@ -24,27 +24,39 @@ body {
   overflow-x: hidden;
 }
 
-@layer utilities {
-  .glass-panel {
-    @apply bg-black/40 backdrop-blur-xl border border-white/10;
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-  }
+/* Utilities */
+.glass-panel {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+}
 
-  .neon-text {
-    @apply text-[var(--primary-blue)];
-    filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.8));
-  }
+.neon-text {
+  color: var(--primary-blue);
+  filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.8));
+}
 
-  .neon-border {
-    @apply border border-[var(--primary-blue)];
-    box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
-  }
+.neon-border {
+  border: 1px solid var(--primary-blue);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
 
-  .cyber-button {
-    @apply relative px-6 py-2 bg-transparent border border-[var(--primary-blue)] text-[var(--primary-blue)] uppercase tracking-widest font-bold transition-all duration-300 hover:bg-[var(--primary-blue)] hover:text-black;
-  }
+.cyber-button {
+  position: relative;
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  border: 1px solid var(--primary-blue);
+  color: var(--primary-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  transition: all 300ms;
+}
 
-  .cyber-button:hover {
-    box-shadow: 0 0 20px var(--primary-blue);
-  }
+.cyber-button:hover {
+  background-color: var(--primary-blue);
+  color: black;
+  box-shadow: 0 0 20px var(--primary-blue);
 }

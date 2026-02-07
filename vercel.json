@@ -6,21 +6,18 @@
             "use": "@vercel/python"
         },
         {
-            "src": "LW/**",
-            "use": "@vercel/static"
+            "src": "frontend/package.json",
+            "use": "@vercel/next"
         }
     ],
     "routes": [
         {
-            "src": "/LW/(.*)",
-            "dest": "/LW/$1",
-            "headers": {
-                "cache-control": "public, max-age=31536000, immutable"
-            }
+            "src": "/api/(.*)",
+            "dest": "server.py"
         },
         {
             "src": "/(.*)",
-            "dest": "server.py"
+            "dest": "/frontend/$1"
         }
     ]
 }

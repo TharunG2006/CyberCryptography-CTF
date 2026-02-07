@@ -16,15 +16,18 @@ export default function RegisterPage() {
         password: ""
     });
     const [status, setStatus] = useState({ message: "", type: "" });
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         setStatus({ message: "TRANSMITTING DATA...", type: "info" });
 
         // Basic validation
         if (!/^\d{10}$/.test(formData.contact)) {
             setStatus({ message: "INVALID CONTACT: MUST BE 10 DIGITS", type: "error" });
+            setIsSubmitting(false);
             return;
         }
 
@@ -41,9 +44,11 @@ export default function RegisterPage() {
                 setTimeout(() => router.push("/login"), 2000);
             } else {
                 setStatus({ message: `ERROR: ${data.error || 'FAILED'}`, type: "error" });
+                setIsSubmitting(false);
             }
         } catch (err) {
             setStatus({ message: "SYSTEM UNREACHABLE", type: "error" });
+            setIsSubmitting(false);
         }
     };
 
@@ -100,6 +105,7 @@ export default function RegisterPage() {
                                     className="w-full bg-black/40 border border-[var(--glass-border)] p-3 text-white focus:border-[var(--neon-green)] focus:outline-none transition-colors"
                                     value={formData.username}
                                     onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -111,6 +117,7 @@ export default function RegisterPage() {
                                     className="w-full bg-black/40 border border-[var(--glass-border)] p-3 text-white focus:border-[var(--neon-green)] focus:outline-none transition-colors"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -121,6 +128,7 @@ export default function RegisterPage() {
                                         className="bg-black/40 border border-[var(--glass-border)] p-3 text-white focus:border-[var(--neon-green)] focus:outline-none w-24"
                                         value={formData.country_code}
                                         onChange={e => setFormData({ ...formData, country_code: e.target.value })}
+                                        disabled={isSubmitting}
                                     >
                                         <option value="+91">+91</option>
                                         <option value="+1">+1</option>
@@ -135,6 +143,7 @@ export default function RegisterPage() {
                                         className="flex-1 bg-black/40 border border-[var(--glass-border)] p-3 text-white focus:border-[var(--neon-green)] focus:outline-none transition-colors"
                                         value={formData.contact}
                                         onChange={e => setFormData({ ...formData, contact: e.target.value })}
+                                        disabled={isSubmitting}
                                     />
                                 </div>
                             </div>
@@ -147,12 +156,19 @@ export default function RegisterPage() {
                                     className="w-full bg-black/40 border border-[var(--glass-border)] p-3 text-white focus:border-[var(--neon-green)] focus:outline-none transition-colors"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="pt-4">
-                                <CyberButton className="w-full !border-[var(--neon-green)] !text-[var(--neon-green)] hover:!bg-[var(--neon-green)]">
-                                    INITIATE AWAKENING
+                                <CyberButton className="w-full !border-[var(--neon-green)] !text-[var(--neon-green)] hover:!bg-[var(--neon-green)]" disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <span className="flex items-center gap-2 justify-center">
+                                            <span className="animate-spin">⟳</span> INITIATING...
+                                        </span>
+                                    ) : (
+                                        "INITIATE AWAKENING"
+                                    )}
                                 </CyberButton>
                             </div>
                         </form>
