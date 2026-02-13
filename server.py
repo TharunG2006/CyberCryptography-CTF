@@ -51,10 +51,9 @@ def send_verification_email(to_email, token):
         msg['To'] = to_email
         msg['Subject'] = "Protocol: ARISE - Activate Your Account"
 
+        # Always use production Vercel URL for actual emails
         verification_link = f"https://solobreach-ctf.vercel.app/api/verify_email/{token}"
-        # Fallback for local testing
-        if os.getenv('FLASK_ENV') == 'development':
-             verification_link = f"http://localhost:3000/api/verify_email/{token}"
+
 
         body = f"""
         <html>
