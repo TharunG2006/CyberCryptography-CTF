@@ -181,10 +181,13 @@ def verify_email(token):
         conn.close()
 
         if user_id:
-            # Redirect to Next.js Login Page with Success
-            return redirect("http://localhost:3000/login?verified=true")
+            # Redirect to login page with success message
+            # Use localhost for local development, Vercel for production
+            base_url = "http://localhost:3000" if os.getenv('FLASK_ENV') == 'development' else "https://solobreach-ctf.vercel.app"
+            return redirect(f"{base_url}/login?verified=true")
         else:
-            return redirect("http://localhost:3000/login?error=invalid_token")
+            base_url = "http://localhost:3000" if os.getenv('FLASK_ENV') == 'development' else "https://solobreach-ctf.vercel.app"
+            return redirect(f"{base_url}/login?error=invalid_token")
     except Exception as e:
         return str(e), 500
 
