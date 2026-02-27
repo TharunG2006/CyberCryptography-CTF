@@ -521,6 +521,33 @@ def get_site_status():
     locked = is_event_locked()
     return jsonify({'event_locked': locked}), 200
 
+@app.route('/api/log_activity', methods=['POST'])
+def log_activity():
+    data = parse_json_body()
+    u_id_raw = data.get('user_id')
+    event_type = data.get('event_type')
+    
+    if not u_id_raw or not event_type:
+        return jsonify({'error': 'Missing fields'}), 400
+        
+    try:
+        u_id = int(str(u_id_raw).split(':')[0])
+    except:
+        return jsonify({'error': 'Invalid ID'}), 401
+
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
+    try:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO user_activity_logs (user_id, event_type) VALUES (%s, %s)", (u_id, event_type))
+        conn.commit()
+        cur.close()
+        return jsonify({'status': 'logged'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
+
 @app.route('/api/admin/toggle', methods=['POST'])
 def toggle_lock():
     data = parse_json_body()

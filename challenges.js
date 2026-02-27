@@ -211,6 +211,20 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'login.html';
     });
 
+    // Anti-Cheat: Tab Switching Detection
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            fetch('/api/log_activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    event_type: 'TAB_HIDDEN'
+                })
+            }).catch(() => { }); // Silent fail to not alert cheaters
+        }
+    });
+
     // Init
     loadChallenges();
 

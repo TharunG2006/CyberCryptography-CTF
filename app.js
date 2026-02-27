@@ -155,7 +155,25 @@ const App = () => {
         const interval = setInterval(pollStatus, 10000);
         pollStatus(); // Initial check
 
-        return () => clearInterval(interval);
+        // Anti-Cheat: Tab Switching Detection
+        const handleVisibility = () => {
+            if (document.hidden && user && user.id) {
+                fetch('/api/log_activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        event_type: 'TAB_HIDDEN'
+                    })
+                }).catch(() => { });
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
 
     const fetchLeaderboard = async () => {

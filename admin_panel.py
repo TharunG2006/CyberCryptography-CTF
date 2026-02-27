@@ -21,16 +21,22 @@ def view_data():
         print("  SHADOW REALM ADMIN PANEL - PLAYER DATA".center(80))
         print("="*80)
         
-        cur.execute("SELECT id, username, email, score, rank, is_verified, created_at FROM users ORDER BY score DESC;")
+        cur.execute("""
+            SELECT u.id, u.username, u.email, u.score, u.rank, u.is_verified,
+                   (SELECT COUNT(*) FROM user_activity_logs WHERE user_id = u.id AND event_type = 'TAB_HIDDEN') as tab_switches
+            FROM users u
+            ORDER BY score DESC;
+        """)
         rows = cur.fetchall()
         
-        header = f"{'ID':<4} | {'Username':<15} | {'Score':<6} | {'Rank':<4} | {'Verified':<8} | {'Email'}"
+        header = f"{'ID':<4} | {'Username':<15} | {'Score':<6} | {'Rank':<4} | {'Tabs':<5} | {'Verified':<8} | {'Email'}"
         print(header)
         print("-" * 80)
         
         for row in rows:
             verified = "✅" if row['is_verified'] else "❌"
-            print(f"{row['id']:<4} | {row['username']:<15} | {row['score']:<6} | {row['rank']:<4} | {verified:<8} | {row['email']}")
+            tabs = row['tab_switches']
+            print(f"{row['id']:<4} | {row['username']:<15} | {row['score']:<6} | {row['rank']:<4} | {tabs:<5} | {verified:<8} | {row['email']}")
             
         print("="*80)
         print(f"Total Operatives: {len(rows)}")

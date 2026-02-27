@@ -188,6 +188,17 @@ def seed():
         """)
         print("✅ Table 'user_hints' ensured.")
 
+        # 4. table: user_activity_logs
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_activity_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                event_type VARCHAR(50),
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        print("✅ Table 'user_activity_logs' ensured.")
+
         print("\n--- Seeding Questions ---")
         for c in challenges:
             cur.execute("SELECT id FROM challenges WHERE id = %s", (c['id'],))
