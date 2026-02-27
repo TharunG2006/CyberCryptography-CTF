@@ -158,8 +158,9 @@ def is_event_locked():
         release_db_connection(conn)
 
 def send_verification_email_sync(to_email, token):
+    print(f"📧 [DEBUG] Starting SMTP transmission for: {to_email}")
     if not MAIL_PASSWORD:
-        print(f"DEBUG: MAIL_PASSWORD missing. VERIFICATION LINK: http://localhost:3000/api/verify_email/{token}")
+        print(f"❌ [DEBUG] MAIL_PASSWORD missing. VERIFICATION LINK: http://localhost:3000/api/verify_email/{token}")
         return
 
     try:
@@ -190,11 +191,15 @@ def send_verification_email_sync(to_email, token):
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
+        print(f"🔗 [DEBUG] Connecting to SMTP Server: {SMTP_SERVER}:{SMTP_PORT}")
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
+        print(f"🔐 [DEBUG] Logging in as: {MAIL_USERNAME}")
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        print(f"📤 [DEBUG] Sending email to: {to_email}")
         server.sendmail(MAIL_USERNAME, to_email, msg.as_string())
         server.quit()
+        print(f"✅ [DEBUG] Email successfully sent to: {to_email}")
     except Exception as e:
         print(f"ERROR: Failed to send email to {to_email}. Reason: {e}")
 
@@ -222,8 +227,14 @@ daemon_worker = threading.Thread(target=mail_worker, daemon=True)
 daemon_worker.start()
 
 def send_verification_email(to_email, token):
-    """Pushes email task to the background queue."""
-    MAIL_QUEUE.put((to_email, token))
+    """Pushes email task to the background queue or sends synchronously if on Vercel."""
+    if IS_VERCEL:
+        print(f"⚡ [PRODUCTION] Sending synchronous email for: {to_email}")
+        send_verification_email_sync(to_email, token)
+    else:
+        print(f"📥 [DEBUG] Enqueuing verification email for: {to_email}")
+        MAIL_QUEUE.put((to_email, token))
+        print(f"📊 [DEBUG] Queue size: {MAIL_QUEUE.qsize()}")
 
 @app.route('/')
 def index():
