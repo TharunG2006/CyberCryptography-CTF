@@ -152,6 +152,7 @@ export default function AdminPortal() {
                                         <th className="p-4 font-bold">Contact</th>
                                         <th className="p-4 font-bold text-right">Score</th>
                                         <th className="p-4 font-bold text-center">Class</th>
+                                        <th className="p-4 font-bold text-center">Violations</th>
                                         <th className="p-4 font-bold text-center">Status</th>
                                         <th className="p-4 font-bold text-right">Last Mission</th>
                                     </tr>
@@ -169,6 +170,14 @@ export default function AdminPortal() {
                                                         'bg-cyan-500/10 text-cyan-500'
                                                     }`}>
                                                     {user.rank}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={`px-2 py-1 rounded-sm font-bold ${user.tab_switches > 5 ? 'bg-red-500/10 text-red-500' :
+                                                    user.tab_switches > 0 ? 'bg-orange-500/10 text-orange-400' :
+                                                        'text-[#8b9bb4]'
+                                                    }`}>
+                                                    {user.tab_switches || 0} TABS
                                                 </span>
                                             </td>
                                             <td className="p-4 text-center">

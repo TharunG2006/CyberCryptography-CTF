@@ -586,8 +586,9 @@ def get_admin_users():
     try:
         cur = conn.cursor()
         query = """
-            SELECT username, email, contact_number, phone_country_code, score, rank, is_verified, last_solve_at 
-            FROM users 
+            SELECT u.username, u.email, u.contact_number, u.phone_country_code, u.score, u.rank, u.is_verified, u.last_solve_at,
+                   (SELECT COUNT(*) FROM user_activity_logs WHERE user_id = u.id AND event_type = 'TAB_HIDDEN') as tab_switches
+            FROM users u
             ORDER BY score DESC, last_solve_at ASC NULLS LAST
         """
         cur.execute(query)
@@ -601,7 +602,8 @@ def get_admin_users():
                 'score': r[4],
                 'rank': r[5],
                 'is_verified': r[6],
-                'last_solve_at': r[7].isoformat() if r[7] else None
+                'last_solve_at': r[7].isoformat() if r[7] else None,
+                'tab_switches': r[8]
             })
         cur.close()
         return jsonify(users), 200
