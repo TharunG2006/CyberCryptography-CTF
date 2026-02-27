@@ -113,7 +113,37 @@ def seed():
         conn.autocommit = True
         cur = conn.cursor()
 
-        print("--- Setting up Challenge Tables ---")
+        print("--- Setting up Core Tables ---")
+
+        # 0. table: users
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                contact_number VARCHAR(20),
+                phone_country_code VARCHAR(10),
+                password_hash TEXT NOT NULL,
+                verification_token TEXT,
+                is_verified BOOLEAN DEFAULT FALSE,
+                score INTEGER DEFAULT 0,
+                rank VARCHAR(5) DEFAULT 'E',
+                guild VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_solve_at TIMESTAMP
+            );
+        """)
+        print("✅ Table 'users' ensured.")
+
+        # 0.1 table: site_settings
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS site_settings (
+                key VARCHAR(50) PRIMARY KEY,
+                value TEXT
+            );
+        """)
+        cur.execute("INSERT INTO site_settings (key, value) VALUES ('event_locked', 'true') ON CONFLICT (key) DO NOTHING")
+        print("✅ Table 'site_settings' ensured and initialized.")
 
         # 1. table: challenges
         cur.execute("""

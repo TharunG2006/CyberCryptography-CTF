@@ -31,16 +31,14 @@ MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
 # Large pools per instance will crash Supabase. 
 # We use 3 for Vercel, 20 for local production.
 IS_VERCEL = os.getenv('VERCEL') == '1' or 'VERCEL' in os.environ
-POOL_SIZE = 15 if IS_VERCEL else 30 # Increased for Vercel headroom
+POOL_SIZE = 2 if IS_VERCEL else 10 # Drastically reduced for Vercel scaling
 
 db_pool = None
-INITIALIZATION_LOCK = threading.Lock()
 
 def init_db_pool():
     global db_pool
-    with INITIALIZATION_LOCK:
-        if db_pool:
-            return True
+    if db_pool:
+        return True
     
     try:
         host = os.getenv('DB_HOST')
@@ -127,17 +125,6 @@ def detect_schema_features():
                 SCHEMA_FEATURES["users_last_solve_at"] = True
             if table_name == "user_solves" and column_name == "solved_at":
                 SCHEMA_FEATURES["user_solves_solved_at"] = True
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS site_settings (
-                key VARCHAR(50) PRIMARY KEY,
-                value TEXT
-            )
-            """
-        )
-        # Initialize event_locked if not present
-        cur.execute("INSERT INTO site_settings (key, value) VALUES ('event_locked', 'true') ON CONFLICT (key) DO NOTHING")
-        conn.commit()
         cur.close()
         print(f"Schema features: {SCHEMA_FEATURES}")
     except Exception as e:
@@ -174,18 +161,11 @@ def is_event_locked():
     finally:
         release_db_connection(conn)
 
-_SCHEMA_DETECTED = False
 def ensure_schema_ready():
     global _SCHEMA_DETECTED
-    if _SCHEMA_DETECTED:
-        return
-        
-    with INITIALIZATION_LOCK:
-        if not _SCHEMA_DETECTED:
-            detect_schema_features()
-            _SCHEMA_DETECTED = True
-
-# Replaced by the cached version above
+    if not _SCHEMA_DETECTED:
+        detect_schema_features()
+        _SCHEMA_DETECTED = True
 
 def send_verification_email_sync(to_email, token):
     print(f"📧 [DEBUG] Starting SMTP transmission for: {to_email}")
