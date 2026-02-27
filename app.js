@@ -139,6 +139,23 @@ const App = () => {
 
         // Fetch Leaderboard
         fetchLeaderboard();
+
+        // Real-Time Event State Polling (10s)
+        let lastStatus = null;
+        const pollStatus = async () => {
+            try {
+                const s_res = await fetch('/api/site-status');
+                const s_data = await s_res.json();
+                if (lastStatus !== null && s_data.event_locked !== lastStatus) {
+                    window.location.reload();
+                }
+                lastStatus = s_data.event_locked;
+            } catch (e) { }
+        };
+        const interval = setInterval(pollStatus, 10000);
+        pollStatus(); // Initial check
+
+        return () => clearInterval(interval);
     }, []);
 
     const fetchLeaderboard = async () => {

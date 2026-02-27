@@ -213,4 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Init
     loadChallenges();
+
+    // Real-Time Event State Polling (10s)
+    let lastStatus = null;
+    setInterval(async () => {
+        try {
+            const s_res = await fetch('/api/site-status');
+            const s_data = await s_res.json();
+            if (lastStatus !== null && s_data.event_locked !== lastStatus) {
+                window.location.reload();
+            }
+            lastStatus = s_data.event_locked;
+        } catch (e) { }
+    }, 10000);
 });
