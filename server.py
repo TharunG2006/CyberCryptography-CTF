@@ -34,11 +34,13 @@ IS_VERCEL = os.getenv('VERCEL') == '1' or 'VERCEL' in os.environ
 POOL_SIZE = 15 if IS_VERCEL else 30 # Increased for Vercel headroom
 
 db_pool = None
+INITIALIZATION_LOCK = threading.Lock()
 
 def init_db_pool():
     global db_pool
-    if db_pool:
-        return True
+    with INITIALIZATION_LOCK:
+        if db_pool:
+            return True
     
     try:
         host = os.getenv('DB_HOST')
@@ -175,9 +177,13 @@ def is_event_locked():
 _SCHEMA_DETECTED = False
 def ensure_schema_ready():
     global _SCHEMA_DETECTED
-    if not _SCHEMA_DETECTED:
-        detect_schema_features()
-        _SCHEMA_DETECTED = True
+    if _SCHEMA_DETECTED:
+        return
+        
+    with INITIALIZATION_LOCK:
+        if not _SCHEMA_DETECTED:
+            detect_schema_features()
+            _SCHEMA_DETECTED = True
 
 # Replaced by the cached version above
 
@@ -216,7 +222,7 @@ def send_verification_email_sync(to_email, token):
         """
         msg.attach(MIMEText(body, 'html'))
         print(f"🔗 [DEBUG] Connecting to SMTP Server: {SMTP_SERVER}:{SMTP_PORT}")
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
         server.starttls()
         print(f"🔐 [DEBUG] Logging in as: {MAIL_USERNAME}")
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
