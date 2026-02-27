@@ -13,6 +13,14 @@ export default function AdminPortal() {
         fetchStatus();
     }, []);
 
+    // Background auto-refresh for operative data (15s)
+    useEffect(() => {
+        if (users.length > 0 && adminKey) {
+            const interval = setInterval(fetchUsers, 15000);
+            return () => clearInterval(interval);
+        }
+    }, [users.length, adminKey]);
+
     const fetchUsers = async () => {
         if (!adminKey) {
             setMessage('ERROR: ADMIN_KEY REQUIRED FOR DATA SYNC');
