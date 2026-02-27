@@ -516,10 +516,12 @@ def unlock_hint():
     finally:
         release_db_connection(conn)
 
-@app.route('/api/site-status', methods=['GET'])
+@app.route('/api/site-status')
 def get_site_status():
-    locked = is_event_locked()
-    return jsonify({'event_locked': locked}), 200
+    response = jsonify({'event_locked': is_event_locked()})
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 @app.route('/api/log_activity', methods=['POST'])
 def log_activity():

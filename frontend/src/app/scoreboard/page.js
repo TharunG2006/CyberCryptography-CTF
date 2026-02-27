@@ -58,6 +58,44 @@ export default function ScoreboardPage() {
             }
         }
         loadScoreboardData();
+
+        // Real-Time Event State Polling (5s)
+        const pollStatus = async () => {
+            try {
+                const s_res = await fetch('/api/site-status?t=' + Date.now());
+                const s_data = await s_res.json();
+                if (window._lastSiteStatus === undefined) {
+                    window._lastSiteStatus = s_data.event_locked;
+                } else if (s_data.event_locked !== window._lastSiteStatus) {
+                    window.location.reload();
+                }
+            } catch (e) { }
+        };
+        const interval = setInterval(pollStatus, 5000);
+
+        // Anti-Cheat: Tab Switching Detection
+        const handleVisibility = () => {
+            if (document.hidden) {
+                const u = JSON.parse(localStorage.getItem('arise_user'));
+                if (u && u.id) {
+                    fetch('/api/log_activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: u.id,
+                            event_type: 'TAB_HIDDEN'
+                        }),
+                        keepalive: true
+                    }).catch(() => { });
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
 
     // Safety check to ensure we always map over an array
