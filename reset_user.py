@@ -6,12 +6,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def reset_user():
-    username = "Tharun G"
-    new_pwd = "Tharun2006"
+    username = os.getenv('RESET_USERNAME', 'Tharun G')
+    new_pwd = os.getenv('RESET_PASSWORD')
+    
+    if not new_pwd:
+        print("❌ ERROR: RESET_PASSWORD environment variable not set.")
+        return
     
     hashed_pw = bcrypt.hashpw(new_pwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    print(f"--- Resetting User: {username} ---")
+    print(f"--- [SECURITY TRANSMISSION] Resetting User: {username} ---")
     try:
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST'),

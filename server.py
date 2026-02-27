@@ -23,7 +23,7 @@ CORS(app)
 # SMTP Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-MAIL_USERNAME = "24104039@nec.edu.in"
+MAIL_USERNAME = os.getenv('MAIL_USERNAME', '24104039@nec.edu.in')
 MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
 
 # Database Connection Pool
@@ -466,12 +466,12 @@ def get_site_status():
 @app.route('/api/admin/toggle', methods=['POST'])
 def toggle_lock():
     data = parse_json_body()
-    key = data.get('admin_key')
+    admin_key = data.get('admin_key')
     lock = data.get('lock') # True to lock, False to unlock
     
-    expected_key = os.getenv('ADMIN_PASSWORD', 'HunterMaster@CTF')
+    expected_key = os.getenv('ADMIN_PASSWORD')
     
-    if key != expected_key:
+    if admin_key != expected_key:
         return jsonify({'error': 'Unauthorized'}), 401
     
     new_status = 'true' if data.get('lock') else 'false'
@@ -491,7 +491,7 @@ def toggle_lock():
 @app.route('/api/admin/users', methods=['GET'])
 def get_admin_users():
     admin_key = request.args.get('admin_key')
-    expected_key = os.getenv('ADMIN_PASSWORD', 'HunterMaster@CTF')
+    expected_key = os.getenv('ADMIN_PASSWORD')
     
     if admin_key != expected_key:
         return jsonify({'error': 'Unauthorized'}), 401
