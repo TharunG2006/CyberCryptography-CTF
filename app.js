@@ -142,9 +142,8 @@ const App = () => {
 
         const pollStatus = async () => {
             try {
-                const s_res = await fetch('/api/site-status');
+                const s_res = await fetch('/api/site-status?t=' + Date.now());
                 const s_data = await s_res.json();
-                // Initialize lastStatus on first fetch
                 if (window._lastSiteStatus === undefined) {
                     window._lastSiteStatus = s_data.event_locked;
                 } else if (s_data.event_locked !== window._lastSiteStatus) {
@@ -152,7 +151,7 @@ const App = () => {
                 }
             } catch (e) { }
         };
-        const interval = setInterval(pollStatus, 5000);
+        const interval = setInterval(pollStatus, 3000);
         pollStatus();
 
         // Anti-Cheat: Tab Switching Detection

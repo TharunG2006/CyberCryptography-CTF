@@ -29,10 +29,12 @@ export default function ChallengesPage() {
                 const statusData = await statusRes.json();
 
                 if (statusData.event_locked) {
+                    window._lastSiteStatus = true;
                     setIsLocked(true);
                     setIsLoading(false);
                     return;
                 }
+                window._lastSiteStatus = false;
 
                 const res = await fetch(`/api/challenges?user_id=${user.id}`);
                 const data = await res.json();
@@ -59,7 +61,7 @@ export default function ChallengesPage() {
                 }
             } catch (e) { }
         };
-        const interval = setInterval(pollStatus, 5000);
+        const interval = setInterval(pollStatus, 3000);
 
         // Anti-Cheat: Tab Switching Detection
         const handleVisibility = () => {

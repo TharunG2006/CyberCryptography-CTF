@@ -19,10 +19,12 @@ export default function ScoreboardPage() {
                 const statusData = await statusRes.json();
 
                 if (statusData.event_locked) {
+                    window._lastSiteStatus = true;
                     setIsLocked(true);
                     setIsLoading(false);
                     return;
                 }
+                window._lastSiteStatus = false;
 
                 const res = await fetch("/api/leaderboard");
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -71,7 +73,7 @@ export default function ScoreboardPage() {
                 }
             } catch (e) { }
         };
-        const interval = setInterval(pollStatus, 5000);
+        const interval = setInterval(pollStatus, 3000);
 
         // Anti-Cheat: Tab Switching Detection
         const handleVisibility = () => {

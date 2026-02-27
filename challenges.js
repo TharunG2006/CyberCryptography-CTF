@@ -214,10 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Init
     loadChallenges();
 
-    // Real-Time Event State Polling (5s)
+    // Real-Time Event State Polling (3s)
     setInterval(async () => {
         try {
-            const s_res = await fetch('/api/site-status');
+            const s_res = await fetch('/api/site-status?t=' + Date.now());
             const s_data = await s_res.json();
             if (window._lastSiteStatus === undefined) {
                 window._lastSiteStatus = s_data.event_locked;
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.reload();
             }
         } catch (e) { }
-    }, 5000);
+    }, 3000);
 
     // Anti-Cheat: Tab Switching Detection
     document.addEventListener('visibilitychange', () => {
