@@ -161,6 +161,8 @@ def is_event_locked():
     finally:
         release_db_connection(conn)
 
+_SCHEMA_DETECTED = False
+
 def ensure_schema_ready():
     global _SCHEMA_DETECTED
     if not _SCHEMA_DETECTED:
@@ -370,8 +372,14 @@ def get_challenges():
         return jsonify({'error': 'Event is currently encrypted. Access denied.', 'status': 'locked'}), 403
     
     ensure_schema_ready()
-    u_id = request.args.get('user_id')
-    if not u_id: return jsonify({'error': 'User ID required'}), 400
+    u_id_raw = request.args.get('user_id')
+    if not u_id_raw: return jsonify({'error': 'User ID required'}), 400
+    
+    # Robust integer conversion to handle stale frontend state (e.g. '1:1')
+    try:
+        u_id = int(str(u_id_raw).split(':')[0])
+    except (ValueError, TypeError):
+        u_id = 0 # Fallback to invalid ID to return challenges as unsolved
     
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'DB Error'}), 500
@@ -406,8 +414,18 @@ def submit_flag():
     
     ensure_schema_ready()
     data = parse_json_body()
-    u_id, c_id, flag = data.get('user_id'), data.get('challenge_id'), data.get('flag')
-    if not all([u_id, c_id, flag]): return jsonify({'error': 'Missing fields'}), 400
+    u_id_raw = data.get('user_id')
+    c_id = data.get('challenge_id')
+    flag = data.get('flag')
+    
+    if not all([u_id_raw, c_id, flag]): 
+        return jsonify({'error': 'Missing fields'}), 400
+
+    try:
+        # User ID might be '1:1' from stale frontend localStorage
+        u_id = int(str(u_id_raw).split(':')[0])
+    except:
+        return jsonify({'error': 'Invalid Session. Please logout and login again.'}), 401
 
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'DB Error'}), 500
@@ -448,9 +466,13 @@ def submit_flag():
 @app.route('/api/unlock_hint', methods=['POST'])
 def unlock_hint():
     data = parse_json_body()
-    u_id, c_id = data.get('user_id'), data.get('challenge_id')
-    if not all([u_id, c_id]):
-        return jsonify({'error': 'Missing fields'}), 400
+    u_id_raw, c_id = data.get('user_id'), data.get('challenge_id')
+    if not u_id_raw or not c_id: return jsonify({'error': 'Missing fields'}), 400
+
+    try:
+        u_id = int(str(u_id_raw).split(':')[0])
+    except:
+        return jsonify({'error': 'Invalid Session. Logout/Login.'}), 401
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'DB Error'}), 500
     try:
