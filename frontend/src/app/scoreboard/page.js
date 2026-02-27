@@ -6,12 +6,24 @@ import GlassCard from "@/components/ui/GlassCard";
 import { motion } from "framer-motion";
 
 export default function ScoreboardPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [isLocked, setIsLocked] = useState(false);
     const [board, setBoard] = useState([]);
     const [userRank, setUserRank] = useState(null);
 
     useEffect(() => {
-        async function fetchLeaderboard() {
+        async function loadScoreboardData() {
             try {
+                // Check site status first
+                const statusRes = await fetch("/api/site-status");
+                const statusData = await statusRes.json();
+
+                if (statusData.event_locked) {
+                    setIsLocked(true);
+                    setIsLoading(false);
+                    return;
+                }
+
                 const res = await fetch("/api/leaderboard");
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
@@ -38,12 +50,14 @@ export default function ScoreboardPage() {
                     console.error("Invalid leaderboard data format:", data);
                     setBoard([]);
                 }
+                setIsLoading(false);
             } catch (e) {
                 console.error("Failed to load leaderboard:", e);
+                setIsLoading(false);
                 setBoard([]);
             }
         }
-        fetchLeaderboard();
+        loadScoreboardData();
     }, []);
 
     // Safety check to ensure we always map over an array
@@ -60,6 +74,37 @@ export default function ScoreboardPage() {
             } catch (e) { console.error("JSON Parse Error", e); }
         }
     }, []);
+
+    if (isLocked) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#050914] relative overflow-hidden font-mono">
+                <div className="absolute inset-0 opacity-10"
+                    style={{ backgroundImage: 'linear-gradient(#2de2e6 1px, transparent 1px), linear-gradient(90deg, #2de2e6 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+                <div className="relative z-10 text-center p-12 border-2 border-[#2de2e6] bg-[#050914] shadow-[0_0_50px_rgba(45,226,230,0.2)] max-w-2xl mx-4">
+                    <h1 className="text-6xl font-black text-[#2de2e6] mb-6 tracking-tighter uppercase italic">LEADERBOARD ENCRYPTED</h1>
+                    <div className="h-1 w-full bg-[#2de2e6] mb-8"></div>
+                    <p className="text-[#e0e6ed] text-lg mb-8 leading-relaxed">
+                        Global ranking transmission has been scrambled. Re-authorization required from the Hunter Master.
+                    </p>
+                    <div className="text-xs text-[#8b9bb4] uppercase tracking-[0.5em] animate-pulse">
+                        AWAITING MASTER KEY...
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#050914] text-[#2de2e6] font-mono">
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 border-4 border-t-[#2de2e6] border-r-transparent border-b-[#ff003c] border-l-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="tracking-[0.5em] uppercase text-sm animate-pulse">Synchronizing Neural Link...</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] overflow-hidden">

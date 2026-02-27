@@ -1,11 +1,16 @@
 from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 import psycopg2
+from psycopg2 import pool
 import bcrypt
 import os
 import re
 import smtplib
 import uuid
+import threading
+import queue
+import time
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
@@ -13,47 +18,160 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-# SMTP Configuration (Placeholders)
-SMTP_SERVER = "smtp.gmail.com" # Default for Edu/Gmail
+# SMTP Configuration
+SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 MAIL_USERNAME = "24104039@nec.edu.in"
-MAIL_PASSWORD = os.getenv('MAIL_PASSWORD') # User must provide this
+MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
 
-def get_db_connection():
+# Database Connection Pool
+# Vercel Adjustment: Vercel auto-scales instances. 
+# Large pools per instance will crash Supabase. 
+# We use 3 for Vercel, 20 for local production.
+IS_VERCEL = os.getenv('VERCEL') == '1' or 'VERCEL' in os.environ
+POOL_SIZE = 3 if IS_VERCEL else 30 # Optimized for 1000 concurrent users
+
+db_pool = None
+
+def init_db_pool():
+    global db_pool
+    if db_pool:
+        return True
+    
     try:
-        conn = psycopg2.connect(
-            host=os.getenv('DB_HOST'),
+        host = os.getenv('DB_HOST')
+        port = os.getenv('DB_PORT', '5432') # Default to AWS RDS port
+        print(f"📡 INITIALIZING DB POOL: {host}:{port} (Pool Size: {POOL_SIZE})...")
+        
+        db_pool = pool.ThreadedConnectionPool(
+            1, POOL_SIZE,
+            host=host,
             database=os.getenv('DB_NAME'),
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASS'),
-            port=os.getenv('DB_PORT'),
-            sslmode='require'
+            port=port,
+            sslmode='require',
+            connect_timeout=10
         )
-        return conn
+        print("✅ DB CONNECTION POOL READY")
+        return True
     except Exception as e:
-        print(f"Error connecting to database: {e}")
+        print(f"⚠️  LAZY_CONNECT FAILED: {e}")
+        return False
+
+@app.route('/health')
+@app.route('/api/health')
+def health():
+    db_status = "Online" if db_pool else "Offline (Will connect on demand)"
+    return jsonify({
+        "status": "Running",
+        "database": db_status,
+        "env": "Vercel" if IS_VERCEL else "Local",
+        "timestamp": datetime.now().isoformat()
+    })
+
+def get_db_connection():
+    global db_pool
+    if not db_pool:
+        init_db_pool()
+    
+    if not db_pool:
+        return None
+        
+    try:
+        return db_pool.getconn()
+    except Exception as e:
+        print(f"❌ Error getting connection: {e}")
         return None
 
-def send_verification_email(to_email, token):
-    if not MAIL_PASSWORD:
-        print("DEBUG: MAIL_PASSWORD is missing in environment variables.")
-        # For demo purposes, print the link
-        print(f"VERIFICATION LINK: http://localhost:3000/api/verify_email/{token}")
+def release_db_connection(conn):
+    if db_pool and conn:
+        try:
+            db_pool.putconn(conn)
+        except:
+            pass
+
+SCHEMA_FEATURES = {
+    "users_last_solve_at": False,
+    "user_solves_solved_at": False,
+}
+
+def parse_json_body():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+def detect_schema_features():
+    conn = get_db_connection()
+    if not conn:
         return
 
     try:
-        print(f"DEBUG: Attempting to send email to {to_email} via {SMTP_SERVER}...")
-        
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT table_name, column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND (
+                (table_name = 'users' AND column_name = 'last_solve_at')
+                OR (table_name = 'user_solves' AND column_name = 'solved_at')
+              );
+            """
+        )
+        for table_name, column_name in cur.fetchall():
+            if table_name == "users" and column_name == "last_solve_at":
+                SCHEMA_FEATURES["users_last_solve_at"] = True
+            if table_name == "user_solves" and column_name == "solved_at":
+                SCHEMA_FEATURES["user_solves_solved_at"] = True
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS site_settings (
+                key VARCHAR(50) PRIMARY KEY,
+                value TEXT
+            )
+            """
+        )
+        # Initialize event_locked if not present
+        cur.execute("INSERT INTO site_settings (key, value) VALUES ('event_locked', 'true') ON CONFLICT (key) DO NOTHING")
+        conn.commit()
+        cur.close()
+        print(f"Schema features: {SCHEMA_FEATURES}")
+    except Exception as e:
+        print(f"Warning: Could not detect schema features: {e}")
+    finally:
+        release_db_connection(conn)
+
+def is_event_locked():
+    conn = get_db_connection()
+    if not conn: return True
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM site_settings WHERE key = 'event_locked'")
+        res = cur.fetchone()
+        cur.close()
+        return res[0] == 'true' if res else True
+    except:
+        return True
+    finally:
+        release_db_connection(conn)
+
+def send_verification_email_sync(to_email, token):
+    if not MAIL_PASSWORD:
+        print(f"DEBUG: MAIL_PASSWORD missing. VERIFICATION LINK: http://localhost:3000/api/verify_email/{token}")
+        return
+
+    try:
         msg = MIMEMultipart()
         msg['From'] = MAIL_USERNAME
         msg['To'] = to_email
         msg['Subject'] = "Protocol: ARISE - Activate Your Account"
-
-        # Always use production Vercel URL for actual emails
-        verification_link = f"https://solobreach-ctf.vercel.app/api/verify_email/{token}"
-
+        
+        # Determine environment for email link
+        # Use our reliable IS_VERCEL check
+        domain = "https://solobreach-ctf.vercel.app" if IS_VERCEL else "http://localhost:3000"
+        verification_link = f"{domain}/api/verify_email/{token}"
 
         body = f"""
         <html>
@@ -72,340 +190,341 @@ def send_verification_email(to_email, token):
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
-
-        print("DEBUG: Connecting to SMTP server...")
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
-        print("DEBUG: Logging in...")
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        print("DEBUG: Sending data...")
         server.sendmail(MAIL_USERNAME, to_email, msg.as_string())
         server.quit()
-        print(f"SUCCESS: Verification email sent to {to_email}")
     except Exception as e:
-        print(f"ERROR: Failed to send email. Reason: {e}")
+        print(f"ERROR: Failed to send email to {to_email}. Reason: {e}")
+
+# --- BACKGROUND EMAIL QUEUE SYSTEM ---
+MAIL_QUEUE = queue.Queue()
+
+def mail_worker():
+    """Background worker to send emails one by one from the queue."""
+    print("🚀 EMAIL WORKER STARTED")
+    while True:
+        try:
+            # Wait for an email task
+            to_email, token = MAIL_QUEUE.get()
+            print(f"📧 Processing email for: {to_email}")
+            send_verification_email_sync(to_email, token)
+            MAIL_QUEUE.task_done()
+            # Small delay to be polite to Gmail SMTP
+            time.sleep(1) 
+        except Exception as e:
+            print(f"❌ Email Worker Error: {e}")
+            time.sleep(5)
+
+# Start the email worker thread immediately
+daemon_worker = threading.Thread(target=mail_worker, daemon=True)
+daemon_worker.start()
+
+def send_verification_email(to_email, token):
+    """Pushes email task to the background queue."""
+    MAIL_QUEUE.put((to_email, token))
 
 @app.route('/')
 def index():
-    return jsonify({
-        "message": "Protocol: ARISE Backend Online",
-        "frontend": "http://localhost:3000",
-        "status": "active"
-    })
+    return jsonify({"message": "Protocol: ARISE Backend Online", "status": "active"})
 
 @app.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard():
+    if is_event_locked():
+        return jsonify({'error': 'Event is currently encrypted. Check back later.'}), 403
     conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Database unavailable'}), 500
-    
+    if not conn: return jsonify({'error': 'Database unavailable'}), 500
     try:
         cur = conn.cursor()
-        cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC LIMIT 10")
+        if SCHEMA_FEATURES["users_last_solve_at"]:
+            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC, last_solve_at ASC LIMIT 10")
+        else:
+            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC LIMIT 10")
+        
         rows = cur.fetchall()
-        leaderboard = []
-        for row in rows:
-            leaderboard.append({
-                'username': row[0],
-                'guild': row[1],
-                'score': row[2],
-                'rank': row[3]
-            })
         cur.close()
-        conn.close()
+        leaderboard = [{'username': r[0], 'guild': r[1], 'score': r[2], 'rank': r[3]} for r in rows]
         return jsonify(leaderboard), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.json
-    username = data.get('username')
-    email = data.get('email')
-    contact = data.get('contact')
+    data = parse_json_body()
+    username, email, contact, pwd = data.get('username'), data.get('email'), data.get('contact'), data.get('password')
     country_code = data.get('country_code', '+91')
-    password = data.get('password')
 
-    # Validation
-    if not all([username, email, contact, password]):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not all([username, email, contact, pwd]):
+        return jsonify({'error': 'Missing fields'}), 400
 
-    # Email Validation
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if not re.match(email_regex, email):
-        return jsonify({'error': 'Invalid email format'}), 400
-
-    # Strict Phone Validation (10 Digits)
-    if not re.match(r'^\d{10}$', contact):
-        return jsonify({'error': 'Invalid contact number (Must be exactly 10 digits)'}), 400
-
-    hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    verification_token = str(uuid.uuid4())
+    # Sanitize contact
+    contact = re.sub(r'\D', '', str(contact))
+    
+    hashed_pw = bcrypt.hashpw(pwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    token = str(uuid.uuid4())
 
     conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Database unavailable'}), 500
-
+    if not conn: return jsonify({'error': 'Database unavailable'}), 500
     try:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO users (username, email, contact_number, phone_country_code, password_hash, verification_token, is_verified, score, rank) VALUES (%s, %s, %s, %s, %s, %s, FALSE, 0, 'E') RETURNING id",
-            (username, email, contact, country_code, hashed_pw, verification_token)
+            (username, email, contact, country_code, hashed_pw, token)
         )
         user_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
-
-        # Send Email
-        send_verification_email(email, verification_token)
-
-        return jsonify({'message': 'Registration successful. Please check your email to verify account.', 'user_id': user_id}), 201
+        send_verification_email(email, token)
+        return jsonify({'message': 'Registration successful.', 'user_id': user_id}), 201
     except psycopg2.errors.UniqueViolation:
+        conn.rollback()
         return jsonify({'error': 'Username or Email already exists'}), 409
     except Exception as e:
+        conn.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/verify_email/<token>', methods=['GET'])
 def verify_email(token):
     conn = get_db_connection()
-    if not conn:
-        return "Database Error", 500
-    
+    if not conn: return "DB Error", 500
     try:
         cur = conn.cursor()
         cur.execute("UPDATE users SET is_verified = TRUE WHERE verification_token = %s RETURNING id", (token,))
-        user_id = cur.fetchone()
+        row = cur.fetchone()
         conn.commit()
         cur.close()
-        conn.close()
-
-        if user_id:
-            # Redirect to login page with success message
-            # Use localhost for local development, Vercel for production
-            base_url = "http://localhost:3000" if os.getenv('FLASK_ENV') == 'development' else "https://solobreach-ctf.vercel.app"
+        
+        # Consistent redirect for all environments
+        base_url = "https://solobreach-ctf.vercel.app" if IS_VERCEL else "http://localhost:3000"
+        
+        if row:
             return redirect(f"{base_url}/login?verified=true")
-        else:
-            base_url = "http://localhost:3000" if os.getenv('FLASK_ENV') == 'development' else "https://solobreach-ctf.vercel.app"
-            return redirect(f"{base_url}/login?error=invalid_token")
+        return redirect(f"{base_url}/login?error=invalid")
     except Exception as e:
+        conn.rollback()
         return str(e), 500
-
-
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-
+    data = parse_json_body()
+    username, password = data.get('username'), data.get('password')
     if not username or not password:
         return jsonify({'error': 'Missing credentials'}), 400
 
     conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Database unavailable'}), 500
-
+    if not conn: return jsonify({'error': 'DB Error'}), 500
     try:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, password_hash, username, email, is_verified, score, rank FROM users WHERE username = %s OR email = %s", 
-            (username, username)
-        )
+        cur.execute("SELECT id, password_hash, username, email, is_verified, score, rank FROM users WHERE username = %s OR email = %s", (username, username))
         user = cur.fetchone()
         cur.close()
-        conn.close()
-
+        
         if user:
-            # Check Verification
-            is_verified = user[4]
-            if not is_verified:
-                return jsonify({'error': 'Account not verified. Please check your email.'}), 403
-
+            if not user[4]: return jsonify({'error': 'Account not verified'}), 403
             if bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
                 return jsonify({
                     'message': 'Login successful',
                     'user': {
-                        'id': user[0],
-                        'username': user[2],
-                        'email': user[3],
-                        'score': user[5],
-                        'rank': user[6]
+                        'id': user[0], 'username': user[2], 'email': user[3], 'score': user[5], 'rank': user[6]
                     }
                 }), 200
-            else:
-                return jsonify({'error': 'Invalid credentials'}), 401
-        else:
-            return jsonify({'error': 'Invalid credentials'}), 401
+        return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-# --- CHALLENGE SYSTEM DATA ---
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/challenges', methods=['GET'])
 def get_challenges():
-    user_id = request.args.get('user_id')
+    if is_event_locked():
+        return jsonify({'error': 'Event is currently encrypted. Access denied.', 'status': 'locked'}), 403
+    u_id = request.args.get('user_id')
+    if not u_id: return jsonify({'error': 'User ID required'}), 400
     
-    if not user_id:
-        return jsonify({'error': 'User ID required'}), 400
-
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'DB Error'}), 500
-
     try:
         cur = conn.cursor()
-        
-        # Get all challenges
         cur.execute("SELECT id, title, category, points, hint_cost, description, hint FROM challenges ORDER BY id ASC")
         challenges_data = cur.fetchall()
-
-        # Get solved challenges for user
-        cur.execute("SELECT challenge_id FROM user_solves WHERE user_id = %s", (user_id,))
+        cur.execute("SELECT challenge_id FROM user_solves WHERE user_id = %s", (u_id,))
         solved_ids = [row[0] for row in cur.fetchall()]
-
-        # Get unlocked hints for user
-        cur.execute("SELECT challenge_id FROM user_hints WHERE user_id = %s", (user_id,))
+        cur.execute("SELECT challenge_id FROM user_hints WHERE user_id = %s", (u_id,))
         unlocked_hints = [row[0] for row in cur.fetchall()]
-        
         cur.close()
-        conn.close()
-
-        challenges_list = []
-        for row in challenges_data:
-            c_id = row[0]
-            is_hint_unlocked = c_id in unlocked_hints
-            
-            challenges_list.append({
-                'id': c_id,
-                'title': row[1],
-                'category': row[2],
-                'points': row[3],
-                'hint_cost': row[4],
-                'solved': c_id in solved_ids,
-                'hint_unlocked': is_hint_unlocked,
-                'description': row[5],
-                # Only send hint text if unlocked, else send None or masked
-                'hint': row[6] if is_hint_unlocked else None
+        res = []
+        for r in challenges_data:
+            c_id = r[0]
+            is_unlocked = c_id in unlocked_hints
+            res.append({
+                'id': c_id, 'title': r[1], 'category': r[2], 'points': r[3], 'hint_cost': r[4],
+                'solved': c_id in solved_ids, 'hint_unlocked': is_unlocked, 'description': r[5],
+                'hint': r[6] if is_unlocked else None
             })
-            
-        return jsonify(challenges_list), 200
+        return jsonify(res), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/submit_flag', methods=['POST'])
 def submit_flag():
-    data = request.json
-    user_id = data.get('user_id')
-    challenge_id = data.get('challenge_id')
-    submitted_flag = data.get('flag')
-
-    if not all([user_id, challenge_id, submitted_flag]):
-        return jsonify({'error': 'Missing data'}), 400
+    if is_event_locked():
+        return jsonify({'error': 'Event is currently encrypted. Transmission blocked.'}), 403
+    data = parse_json_body()
+    u_id, c_id, flag = data.get('user_id'), data.get('challenge_id'), data.get('flag')
+    if not all([u_id, c_id, flag]): return jsonify({'error': 'Missing fields'}), 400
 
     conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
     try:
         cur = conn.cursor()
-        
-        # 1. Check if already solved
-        cur.execute("SELECT 1 FROM user_solves WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
-        if cur.fetchone():
-            return jsonify({'message': 'Already Solved', 'correct': True, 'first_time': False}), 200
+        cur.execute("SELECT 1 FROM user_solves WHERE user_id = %s AND challenge_id = %s", (u_id, c_id))
+        if cur.fetchone(): return jsonify({'message': 'Already Solved', 'correct': True}), 200
 
-        # 2. Verify Flag
-        cur.execute("SELECT flag, points FROM challenges WHERE id = %s", (challenge_id,))
+        cur.execute("SELECT flag, points FROM challenges WHERE id = %s", (c_id,))
         row = cur.fetchone()
-        if not row:
-            return jsonify({'error': 'Challenge not found'}), 404
+        if not row: return jsonify({'error': 'Not found'}), 404
         
-        real_flag = row[0]
-        points = row[1]
+        if flag.strip() == row[0].strip():
+            now = datetime.now()
+            if SCHEMA_FEATURES["user_solves_solved_at"]:
+                cur.execute("INSERT INTO user_solves (user_id, challenge_id, solved_at) VALUES (%s, %s, %s)", (u_id, c_id, now))
+            else:
+                cur.execute("INSERT INTO user_solves (user_id, challenge_id) VALUES (%s, %s)", (u_id, c_id))
 
-        # Case-insensitive comparison and whitespace stripping
-        if submitted_flag.strip() == real_flag.strip():
-            # Correct!
-            # Record solve (Ignore conflict if repeat submission happens rapidly)
-            # cursor should already handle repeats via earlier check, but good to be safe
-            cur.execute("INSERT INTO user_solves (user_id, challenge_id) VALUES (%s, %s)", (user_id, challenge_id))
+            if SCHEMA_FEATURES["users_last_solve_at"]:
+                cur.execute("UPDATE users SET score = score + %s, last_solve_at = %s WHERE id = %s RETURNING score", (row[1], now, u_id))
+            else:
+                cur.execute("UPDATE users SET score = score + %s WHERE id = %s RETURNING score", (row[1], u_id))
             
-            # Update Score
-            cur.execute("UPDATE users SET score = score + %s WHERE id = %s RETURNING score", (points, user_id))
             new_score = cur.fetchone()[0]
-
-            # Calculate New Rank
-            new_rank = 'E'
-            if new_score >= 3000: new_rank = 'S'
-            elif new_score >= 1500: new_rank = 'A'
-            elif new_score >= 800: new_rank = 'B'
-            elif new_score >= 400: new_rank = 'C'
-            elif new_score >= 100: new_rank = 'D'
-
-            # Update Rank
-            cur.execute("UPDATE users SET rank = %s WHERE id = %s", (new_rank, user_id))
-            
+            ranks = [('S', 3000), ('A', 1500), ('B', 800), ('C', 400), ('D', 100)]
+            new_rank = next((r[0] for r in ranks if new_score >= r[1]), 'E')
+            cur.execute("UPDATE users SET rank = %s WHERE id = %s", (new_rank, u_id))
             conn.commit()
-            cur.close()
-            conn.close()
-            return jsonify({
-                'message': 'Flag Correct!', 
-                'correct': True, 
-                'first_time': True, 
-                'points_added': points,
-                'new_score': new_score,
-                'new_rank': new_rank
-            }), 200
-        else:
-            cur.close()
-            conn.close()
-            return jsonify({'message': 'Incorrect Flag', 'correct': False}), 400
-
+            return jsonify({'message': 'Correct!', 'correct': True, 'points': row[1], 'new_score': new_score, 'new_rank': new_rank}), 200
+        return jsonify({'message': 'Incorrect', 'correct': False}), 400
     except Exception as e:
+        conn.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
 
 @app.route('/api/unlock_hint', methods=['POST'])
 def unlock_hint():
-    data = request.json
-    user_id = data.get('user_id')
-    challenge_id = data.get('challenge_id')
-
+    data = parse_json_body()
+    u_id, c_id = data.get('user_id'), data.get('challenge_id')
+    if not all([u_id, c_id]):
+        return jsonify({'error': 'Missing fields'}), 400
     conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
     try:
         cur = conn.cursor()
-
-        # Check if already unlocked
-        cur.execute("SELECT 1 FROM user_hints WHERE user_id = %s AND challenge_id = %s", (user_id, challenge_id))
+        cur.execute("SELECT 1 FROM user_hints WHERE user_id = %s AND challenge_id = %s", (u_id, c_id))
         if cur.fetchone():
-            cur.execute("SELECT hint FROM challenges WHERE id = %s", (challenge_id,))
-            hint = cur.fetchone()[0]
-            return jsonify({'hint': hint, 'status': 'ALREADY_UNLOCKED'}), 200
+            cur.execute("SELECT hint FROM challenges WHERE id = %s", (c_id,))
+            hint_row = cur.fetchone()
+            if not hint_row:
+                return jsonify({'error': 'Challenge not found'}), 404
+            return jsonify({'hint': hint_row[0], 'status': 'EXISTING'}), 200
 
-        # Get cost and user score
-        cur.execute("SELECT hint, hint_cost FROM challenges WHERE id = %s", (challenge_id,))
-        row = cur.fetchone()
-        hint = row[0]
-        cost = row[1]
+        cur.execute("SELECT hint, hint_cost FROM challenges WHERE id = %s", (c_id,))
+        r = cur.fetchone()
+        if not r:
+            return jsonify({'error': 'Challenge not found'}), 404
+        cur.execute("SELECT score FROM users WHERE id = %s", (u_id,))
+        user_row = cur.fetchone()
+        if not user_row:
+            return jsonify({'error': 'User not found'}), 404
+        u_score = user_row[0]
 
-        cur.execute("SELECT score FROM users WHERE id = %s", (user_id,))
-        user_score = cur.fetchone()[0]
-
-        if user_score >= cost:
-            # Deduct points
-            cur.execute("UPDATE users SET score = score - %s WHERE id = %s", (cost, user_id))
-            # Record unlock
-            cur.execute("INSERT INTO user_hints (user_id, challenge_id) VALUES (%s, %s)", (user_id, challenge_id))
+        if u_score >= r[1]:
+            cur.execute("UPDATE users SET score = score - %s WHERE id = %s", (r[1], u_id))
+            cur.execute("INSERT INTO user_hints (user_id, challenge_id) VALUES (%s, %s)", (u_id, c_id))
             conn.commit()
-            
-            cur.close()
-            conn.close()
-            return jsonify({'hint': hint, 'status': 'UNLOCKED', 'check_deducted': cost}), 200
-        else:
-            cur.close()
-            conn.close()
-            return jsonify({'error': 'Insufficient Points'}), 403
+            return jsonify({'hint': r[0], 'status': 'UNLOCKED'}), 200
+        return jsonify({'error': 'Insufficient Points'}), 403
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
 
+@app.route('/api/site-status', methods=['GET'])
+def get_site_status():
+    locked = is_event_locked()
+    return jsonify({'event_locked': locked}), 200
+
+@app.route('/api/admin/toggle', methods=['POST'])
+def toggle_lock():
+    data = parse_json_body()
+    key = data.get('admin_key')
+    lock = data.get('lock') # True to lock, False to unlock
+    
+    expected_key = os.getenv('ADMIN_PASSWORD', 'HunterMaster@CTF')
+    
+    if key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    new_status = 'true' if data.get('lock') else 'false'
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE site_settings SET value = %s WHERE key = 'event_locked'", (new_status,))
+        conn.commit()
+        cur.close()
+        return jsonify({'message': f'Event lock set to {new_status}', 'event_locked': data.get('lock')}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_admin_users():
+    admin_key = request.args.get('admin_key')
+    expected_key = os.getenv('ADMIN_PASSWORD', 'HunterMaster@CTF')
+    
+    if admin_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'DB Error'}), 500
+    try:
+        cur = conn.cursor()
+        query = """
+            SELECT username, email, contact_number, phone_country_code, score, rank, is_verified, last_solve_at 
+            FROM users 
+            ORDER BY score DESC, last_solve_at ASC NULLS LAST
+        """
+        cur.execute(query)
+        rows = cur.fetchall()
+        users = []
+        for r in rows:
+            users.append({
+                'username': r[0],
+                'email': r[1],
+                'contact': f"{r[3]}{r[2]}",
+                'score': r[4],
+                'rank': r[5],
+                'is_verified': r[6],
+                'last_solve_at': r[7].isoformat() if r[7] else None
+            })
+        cur.close()
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        release_db_connection(conn)
 
 if __name__ == '__main__':
+    detect_schema_features()
     app.run(debug=False, port=5000)

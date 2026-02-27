@@ -12,10 +12,11 @@ export default function ChallengesPage() {
     const [challenges, setChallenges] = useState([]);
     const [selectedChallenge, setSelectedChallenge] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLocked, setIsLocked] = useState(false);
 
-    // Fetch challenges on load
+    // Fetch site status and challenges on load
     useEffect(() => {
-        async function fetchChallenges() {
+        async function loadPageData() {
             const user = JSON.parse(localStorage.getItem('arise_user'));
             if (!user) {
                 window.location.href = '/login';
@@ -23,6 +24,16 @@ export default function ChallengesPage() {
             }
 
             try {
+                // Check if site is locked
+                const statusRes = await fetch('/api/site-status');
+                const statusData = await statusRes.json();
+
+                if (statusData.event_locked) {
+                    setIsLocked(true);
+                    setIsLoading(false);
+                    return;
+                }
+
                 const res = await fetch(`/api/challenges?user_id=${user.id}`);
                 const data = await res.json();
                 setChallenges(data);
@@ -30,16 +41,37 @@ export default function ChallengesPage() {
                 // Artificial delay for "decrypting" effect
                 setTimeout(() => setIsLoading(false), 800);
             } catch (e) {
-                console.error("Failed to load missions");
+                console.error("Failed to load missions", e);
+                setIsLoading(false);
             }
         }
-        fetchChallenges();
+        loadPageData();
     }, []); // Run once on mount
 
     const groupedChallenges = CATEGORIES.reduce((acc, cat) => {
         acc[cat] = challenges.filter(c => c.category === cat);
         return acc;
     }, {});
+
+    if (isLocked) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#050914] relative overflow-hidden font-mono">
+                <div className="absolute inset-0 opacity-10"
+                    style={{ backgroundImage: 'linear-gradient(#ff003c 1px, transparent 1px), linear-gradient(90deg, #ff003c 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+                <div className="relative z-10 text-center p-12 border-2 border-[#ff003c] bg-[#050914] shadow-[0_0_50px_rgba(255,0,60,0.2)] max-w-2xl mx-4">
+                    <h1 className="text-6xl font-black text-[#ff003c] mb-6 tracking-tighter uppercase italic">MISSION DATA ENCRYPTED</h1>
+                    <div className="h-1 w-full bg-[#ff003c] mb-8"></div>
+                    <p className="text-[#e0e6ed] text-lg mb-8 leading-relaxed">
+                        The neural link to the mission sector has been severed. Decryption protocols are currently offline.
+                    </p>
+                    <div className="text-xs text-[#8b9bb4] uppercase tracking-[0.5em] animate-pulse">
+                        AWAITING MASTER AUTHORIZATION...
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -70,8 +102,11 @@ export default function ChallengesPage() {
         setChallenges(prev => prev.map(c =>
             c.id === challengeId ? { ...c, solved: true } : c
         ));
-        // Also close modal after a short delay if desired, or let user close it
-        // setSelectedChallenge(null); 
+
+        // Auto-close modal after 2 seconds so user can see the "Correct!" message
+        setTimeout(() => {
+            setSelectedChallenge(null);
+        }, 2000);
     };
 
     const handleHintUnlock = (challengeId, hintText) => {

@@ -161,15 +161,21 @@ export default function ChallengeModal({ challenge, isOpen, onClose, onSolve, on
                                 type="text"
                                 value={flag}
                                 onChange={(e) => setFlag(e.target.value)}
-                                placeholder="ENTER FLAG (e.g. ARISE{...})"
-                                className="w-full bg-black/60 border border-cyan-500/30 p-4 text-white font-mono focus:border-[var(--primary-blue)] focus:outline-none focus:shadow-[0_0_15px_rgba(0,243,255,0.2)]"
+                                placeholder={isSuccess ? "MISSION ACCOMPLISHED" : "ENTER FLAG (e.g. ARISE{...})"}
+                                className={`w-full bg-black/60 border p-4 text-white font-mono focus:outline-none transition-all ${isSuccess ? "border-[var(--neon-green)] text-[var(--neon-green)] cursor-not-allowed" : "border-cyan-500/30 focus:border-[var(--primary-blue)] focus:shadow-[0_0_15px_rgba(0,243,255,0.2)]"
+                                    }`}
+                                disabled={isSubmitting || isSuccess}
                             />
 
-                            <CyberButton onClick={handleSubmit} className="w-full">
+                            <CyberButton
+                                onClick={handleSubmit}
+                                className="w-full"
+                                disabled={isSubmitting || isSuccess}
+                            >
                                 {isSubmitting ? (
                                     <span className="animate-pulse tracking-widest">PROCESSING...</span>
                                 ) : isSuccess ? (
-                                    "TRANSMISSION CONFIRMED"
+                                    <span className="text-[var(--neon-green)]">✓ TRANSMISSION CONFIRMED</span>
                                 ) : (
                                     "SUBMIT FLAG"
                                 )}
