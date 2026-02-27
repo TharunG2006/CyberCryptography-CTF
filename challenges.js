@@ -219,10 +219,29 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const s_res = await fetch('/api/site-status');
             const s_data = await s_res.json();
-            if (lastStatus !== null && s_data.event_locked !== lastStatus) {
+            if (window._lastSiteStatus === undefined) {
+                window._lastSiteStatus = s_data.event_locked;
+            } else if (s_data.event_locked !== window._lastSiteStatus) {
                 window.location.reload();
             }
-            lastStatus = s_data.event_locked;
         } catch (e) { }
-    }, 10000);
+    }, 5000);
+
+    // Anti-Cheat: Tab Switching Detection
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            const u = JSON.parse(localStorage.getItem('arise_user'));
+            if (u && u.id) {
+                fetch('/api/log_activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: u.id,
+                        event_type: 'TAB_HIDDEN'
+                    }),
+                    keepalive: true
+                }).catch(() => { });
+            }
+        }
+    });
 });

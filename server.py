@@ -566,6 +566,7 @@ def toggle_lock():
         cur = conn.cursor()
         cur.execute("UPDATE site_settings SET value = %s WHERE key = 'event_locked'", (new_status,))
         conn.commit()
+        _LOCK_CACHE['expiry'] = 0
         cur.close()
         return jsonify({'message': f'Event lock set to {new_status}', 'event_locked': data.get('lock')}), 200
     except Exception as e:
