@@ -440,22 +440,31 @@ def submit_flag():
         
         if flag.strip() == row[0].strip():
             now = datetime.now()
+            # Optimized: Update score and solve record in one block
             if SCHEMA_FEATURES["user_solves_solved_at"]:
                 cur.execute("INSERT INTO user_solves (user_id, challenge_id, solved_at) VALUES (%s, %s, %s)", (u_id, c_id, now))
             else:
                 cur.execute("INSERT INTO user_solves (user_id, challenge_id) VALUES (%s, %s)", (u_id, c_id))
 
+            points = row[1]
             if SCHEMA_FEATURES["users_last_solve_at"]:
-                cur.execute("UPDATE users SET score = score + %s, last_solve_at = %s WHERE id = %s RETURNING score", (row[1], now, u_id))
+                cur.execute("UPDATE users SET score = score + %s, last_solve_at = %s WHERE id = %s RETURNING score", (points, now, u_id))
             else:
-                cur.execute("UPDATE users SET score = score + %s WHERE id = %s RETURNING score", (row[1], u_id))
+                cur.execute("UPDATE users SET score = score + %s WHERE id = %s RETURNING score", (points, u_id))
             
             new_score = cur.fetchone()[0]
-            ranks = [('S', 3000), ('A', 1500), ('B', 800), ('C', 400), ('D', 100)]
-            new_rank = next((r[0] for r in ranks if new_score >= r[1]), 'E')
+            
+            # Atomic Rank Calculation
+            new_rank = 'E'
+            if new_score >= 3000: new_rank = 'S'
+            elif new_score >= 1500: new_rank = 'A'
+            elif new_score >= 800: new_rank = 'B'
+            elif new_score >= 400: new_rank = 'C'
+            elif new_score >= 100: new_rank = 'D'
+            
             cur.execute("UPDATE users SET rank = %s WHERE id = %s", (new_rank, u_id))
             conn.commit()
-            return jsonify({'message': 'Correct!', 'correct': True, 'points': row[1], 'new_score': new_score, 'new_rank': new_rank}), 200
+            return jsonify({'message': 'Correct!', 'correct': True, 'points': points, 'new_score': new_score, 'new_rank': new_rank}), 200
         return jsonify({'message': 'Incorrect', 'correct': False}), 400
     except Exception as e:
         conn.rollback()

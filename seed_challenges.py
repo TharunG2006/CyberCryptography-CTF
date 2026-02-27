@@ -145,6 +145,10 @@ def seed():
         cur.execute("INSERT INTO site_settings (key, value) VALUES ('event_locked', 'true') ON CONFLICT (key) DO NOTHING")
         print("✅ Table 'site_settings' ensured and initialized.")
 
+        # 0.2 index: users_ranking
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_ranking ON users (score DESC, last_solve_at ASC);")
+        print("✅ Index 'idx_users_ranking' ensured.")
+
         # 1. table: challenges
         cur.execute("""
             CREATE TABLE IF NOT EXISTS challenges (
