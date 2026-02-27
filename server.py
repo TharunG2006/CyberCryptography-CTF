@@ -31,7 +31,7 @@ MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
 # Large pools per instance will crash Supabase. 
 # We use 3 for Vercel, 20 for local production.
 IS_VERCEL = os.getenv('VERCEL') == '1' or 'VERCEL' in os.environ
-POOL_SIZE = 3 if IS_VERCEL else 30 # Optimized for 1000 concurrent users
+POOL_SIZE = 15 if IS_VERCEL else 30 # Increased for Vercel headroom
 
 db_pool = None
 
@@ -143,19 +143,43 @@ def detect_schema_features():
     finally:
         release_db_connection(conn)
 
+# --- GLOBAL STATUS CACHE ---
+# This drastically reduces latency for users in different regions (e.g. Mumbai vs Stockholm)
+_LOCK_CACHE = {'value': True, 'expiry': 0}
+
 def is_event_locked():
+    global _LOCK_CACHE
+    now = time.time()
+    
+    # Check cache (2 second ttl)
+    if now < _LOCK_CACHE['expiry']:
+        return _LOCK_CACHE['value']
+    
     conn = get_db_connection()
-    if not conn: return True
+    if not conn: return _LOCK_CACHE['value'] # Return last known or default
     try:
         cur = conn.cursor()
         cur.execute("SELECT value FROM site_settings WHERE key = 'event_locked'")
         res = cur.fetchone()
         cur.close()
-        return res[0] == 'true' if res else True
+        locked = res[0] == 'true' if res else True
+        
+        # Update cache
+        _LOCK_CACHE = {'value': locked, 'expiry': now + 2}
+        return locked
     except:
-        return True
+        return _LOCK_CACHE['value']
     finally:
         release_db_connection(conn)
+
+_SCHEMA_DETECTED = False
+def ensure_schema_ready():
+    global _SCHEMA_DETECTED
+    if not _SCHEMA_DETECTED:
+        detect_schema_features()
+        _SCHEMA_DETECTED = True
+
+# Replaced by the cached version above
 
 def send_verification_email_sync(to_email, token):
     print(f"📧 [DEBUG] Starting SMTP transmission for: {to_email}")
@@ -244,6 +268,8 @@ def index():
 def get_leaderboard():
     if is_event_locked():
         return jsonify({'error': 'Event is currently encrypted. Check back later.'}), 403
+    
+    ensure_schema_ready()
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'Database unavailable'}), 500
     try:
@@ -356,6 +382,8 @@ def login():
 def get_challenges():
     if is_event_locked():
         return jsonify({'error': 'Event is currently encrypted. Access denied.', 'status': 'locked'}), 403
+    
+    ensure_schema_ready()
     u_id = request.args.get('user_id')
     if not u_id: return jsonify({'error': 'User ID required'}), 400
     
@@ -389,6 +417,8 @@ def get_challenges():
 def submit_flag():
     if is_event_locked():
         return jsonify({'error': 'Event is currently encrypted. Transmission blocked.'}), 403
+    
+    ensure_schema_ready()
     data = parse_json_body()
     u_id, c_id, flag = data.get('user_id'), data.get('challenge_id'), data.get('flag')
     if not all([u_id, c_id, flag]): return jsonify({'error': 'Missing fields'}), 400
@@ -537,5 +567,5 @@ def get_admin_users():
         release_db_connection(conn)
 
 if __name__ == '__main__':
-    detect_schema_features()
+    # detect_schema_features() - Now called lazily via ensure_schema_ready()
     app.run(debug=False, port=5000)
