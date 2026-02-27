@@ -140,32 +140,36 @@ const App = () => {
         // Fetch Leaderboard
         fetchLeaderboard();
 
-        // Real-Time Event State Polling (10s)
-        let lastStatus = null;
         const pollStatus = async () => {
             try {
                 const s_res = await fetch('/api/site-status');
                 const s_data = await s_res.json();
-                if (lastStatus !== null && s_data.event_locked !== lastStatus) {
+                // Initialize lastStatus on first fetch
+                if (window._lastSiteStatus === undefined) {
+                    window._lastSiteStatus = s_data.event_locked;
+                } else if (s_data.event_locked !== window._lastSiteStatus) {
                     window.location.reload();
                 }
-                lastStatus = s_data.event_locked;
             } catch (e) { }
         };
-        const interval = setInterval(pollStatus, 10000);
-        pollStatus(); // Initial check
+        const interval = setInterval(pollStatus, 5000);
+        pollStatus();
 
         // Anti-Cheat: Tab Switching Detection
         const handleVisibility = () => {
-            if (document.hidden && user && user.id) {
-                fetch('/api/log_activity', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        event_type: 'TAB_HIDDEN'
-                    })
-                }).catch(() => { });
+            if (document.hidden) {
+                const u = JSON.parse(localStorage.getItem('arise_user'));
+                if (u && u.id) {
+                    fetch('/api/log_activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: u.id,
+                            event_type: 'TAB_HIDDEN'
+                        }),
+                        keepalive: true
+                    }).catch(() => { });
+                }
             }
         };
         document.addEventListener('visibilitychange', handleVisibility);
