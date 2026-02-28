@@ -617,4 +617,4 @@ def get_admin_users():
 
 if __name__ == '__main__':
     # detect_schema_features() - Now called lazily via ensure_schema_ready()
-    app.run(debug=False, port=5000)
+    app.run(host='0.0.0.0', debug=False, port=5000)
