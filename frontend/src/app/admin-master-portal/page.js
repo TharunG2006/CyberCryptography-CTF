@@ -43,6 +43,41 @@ export default function AdminPortal() {
         }
     };
 
+    const exportToCSV = () => {
+        if (users.length === 0) {
+            setMessage('ERROR: NO DATA TO EXPORT');
+            return;
+        }
+
+        const headers = ["Username", "Email", "Contact", "Score", "Class", "Violations", "Verified", "Last Mission"];
+        const rows = users.map(u => [
+            u.username,
+            u.email,
+            u.contact,
+            u.score,
+            u.rank,
+            u.tab_switches || 0,
+            u.is_verified ? "YES" : "NO",
+            u.last_solve_at ? new Date(u.last_solve_at).toLocaleString() : "---"
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `operative_mission_data_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setMessage('SUCCESS: MISSION DATA EXPORTED');
+    };
+
     const fetchStatus = async () => {
         try {
             const res = await fetch('/api/site-status');
@@ -142,13 +177,24 @@ export default function AdminPortal() {
                 </div>
 
                 <div className="mt-8">
-                    <button
-                        onClick={fetchUsers}
-                        className="flex items-center gap-2 text-xs font-bold text-[#2de2e6] hover:text-white transition-colors uppercase tracking-[0.2em] mb-4"
-                        disabled={isUsersLoading}
-                    >
-                        {isUsersLoading ? '♻ SYNCHRONIZING...' : '⌬ LOAD OPERATIVE DATA'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-4 mb-4">
+                        <button
+                            onClick={fetchUsers}
+                            className="flex items-center gap-2 text-xs font-bold text-[#2de2e6] hover:text-white transition-colors uppercase tracking-[0.2em]"
+                            disabled={isUsersLoading}
+                        >
+                            {isUsersLoading ? '♻ SYNCHRONIZING...' : '⌬ LOAD OPERATIVE DATA'}
+                        </button>
+
+                        {users.length > 0 && (
+                            <button
+                                onClick={exportToCSV}
+                                className="flex items-center gap-2 text-xs font-bold text-green-500 hover:text-green-400 transition-colors uppercase tracking-[0.2em] border border-green-500/30 px-3 py-1 bg-green-500/5"
+                            >
+                                ⌬ EXCEL EXPORT
+                            </button>
+                        )}
+                    </div>
 
                     {users.length > 0 && (
                         <div className="bg-[#0a0f1e] border border-[#2de2e6]/20 overflow-x-auto">

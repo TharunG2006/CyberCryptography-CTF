@@ -47,7 +47,7 @@ challenges = [
     {
         "id": 8, "title": "Primality Verification", "category": "Medium", "points": 250,
         "description": "Use Fermat’s Primality Test to test whether: n = 341 is prime or composite.",
-        "flag": "ARISE{prime}", "hint": "Be careful, 341 is a pseudoprime.", "hint_cost": 25
+        "flag": "ARISE{composite}", "hint": "Be careful, 341 is a pseudoprime.", "hint_cost": 25
     },
     {
         "id": 9, "title": "Vigenère Cipher", "category": "Medium", "points": 250,
@@ -96,7 +96,7 @@ challenges = [
     {
         "id": 17, "title": "Perfect Secrecy Conditions", "category": "Extreme", "points": 1000,
         "description": "The Vernam cipher is proven to be perfectly secure under certain conditions. Identify all conditions required for perfect secrecy and explain why violating them compromises security. Submit your answer concisely.",
-        "flag": "ARISE{random_key_same_length_used_once}", "hint": "Shannon's criteria for perfect secrecy.", "hint_cost": 100
+        "flag": "ARISE{p(m/c)=p(m)}", "hint": "Shannon's criteria for perfect secrecy.", "hint_cost": 100
     }
 ]
 
