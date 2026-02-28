@@ -263,9 +263,9 @@ def get_leaderboard():
     try:
         cur = conn.cursor()
         if SCHEMA_FEATURES["users_last_solve_at"]:
-            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC, last_solve_at ASC LIMIT 10")
+            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC, last_solve_at ASC LIMIT 100")
         else:
-            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC LIMIT 10")
+            cur.execute("SELECT username, guild, score, rank FROM users ORDER BY score DESC LIMIT 100")
         
         rows = cur.fetchall()
         cur.close()
